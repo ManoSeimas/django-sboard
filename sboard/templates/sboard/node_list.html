@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load markup %}
+{% load i18n %}
+
+{% block title %}
+{% if node %}
+{% if not node.title and node.has_parent %}
+<a href="{{ node.get_parent.permalink }}">{{ node.get_parent.title }}</a>
+{% else %}
+{{ node.title }}
+{% endif %}
+{% else %}
+{% trans "All nodes" %}
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% for child in children %}
+<div class="list-entry">
+<h2><a href="{{ child.permalink }}">{{ child.title }}</a></h2>
+<p>{{ child.body|restructuredtext|striptags|truncatewords:50 }}</p>
+{% for comment in child.get_children %}
+<div class="sub-comment">
+<p>{{ comment.body|restructuredtext|striptags|truncatewords:20 }}</p>
+</div>
+{% endfor %}
+</div>
+{% endfor %}
+{% endblock %}
