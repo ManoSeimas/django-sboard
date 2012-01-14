@@ -1,5 +1,7 @@
 from django.conf.urls.defaults import patterns, url, include
 
+slug = r'[a-z0-9-]+'
+
 node = patterns('sboard.views',
     url(r'^$', 'node_details', name='node_details'),
     url(r'^create/$', 'node_create', name='node_create_child'),
@@ -7,8 +9,14 @@ node = patterns('sboard.views',
     url(r'^delete/$', 'node_delete', name='node_delete'),
 )
 
+media = patterns('sboard.views',
+    url(r'^(?P<slug>%s)/normal.(?P<ext>[a-z0-9]+)$' % slug, 'render_image',
+        name='media_normal_size'),
+)
+
 urlpatterns = patterns('sboard.views',
     url(r'^$', 'node_details', name='node_list'),
     url(r'^create/$', 'node_create', name='node_create'),
-    url(r'^(?P<key>[a-z0-9-]+)/' % slug, include(node)),
+    url(r'^media/', include(media)),
+    url(r'^(?P<key>%s)/' % slug, include(node)),
 )

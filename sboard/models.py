@@ -7,6 +7,9 @@ from django.template.defaultfilters import slugify
 
 from couchdbkit.ext.django import schema
 
+from docutils.parsers.rst import directives
+from docutils.parsers.rst.directives.images import Image
+
 
 class Node(schema.Document):
     author = schema.StringProperty()
@@ -48,3 +51,20 @@ class Node(schema.Document):
 
 class Comment(Node):
     pass
+
+
+class Media(schema.Document):
+    ext = schema.StringProperty(required=True)
+    author = schema.StringProperty()
+    name = schema.StringProperty()
+    created = schema.DateTimeProperty(default=datetime.datetime.utcnow)
+
+
+class CustomImage(Image):
+    def run(self):
+        media = Media.get(self.arguments[0])
+        self.arguments[0] = reverse('media_normal_size',
+                                    args=[media._id, media.ext])
+        return super(CustomImage, self).run()
+
+directives.register_directive('image', CustomImage)
