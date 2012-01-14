@@ -10,5 +10,5 @@ node = patterns('sboard.views',
 urlpatterns = patterns('sboard.views',
     url(r'^$', 'node_details', name='node_list'),
     url(r'^create/$', 'node_create', name='node_create'),
-    url(r'^(?P<key>[a-z0-9-]+)/$', include(node)),
+    url(r'^(?P<key>[a-z0-9-]+)/' % slug, include(node)),
 )
