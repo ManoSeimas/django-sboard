@@ -1,3 +1,4 @@
+import functools
 import datetime
 import unidecode
 import uuid
@@ -9,6 +10,43 @@ from couchdbkit.ext.django import schema
 
 from docutils.parsers.rst import directives
 from docutils.parsers.rst.directives.images import Image
+
+
+def get_doctype_map():
+    """Returns dictionary which maps between ``doc_type`` to approporate model
+    class.""" 
+    return {
+        'Comment': Comment,
+        'Node': Node,
+    }
+
+
+class SboardCouchViews(object):
+    """A helper to access views from couch-db easier, for example::
+
+      docviews = SboardDocumentViews(key=doc)
+      views.children(include_docs=False)
+
+    Is equivalent to::
+
+      Node.view('sboad/children', key=doc.id, include_docs=False)
+
+    Is useful when you need to call many different views from sboard with same
+    arguments.
+
+    """
+        
+    def __init__(self, **kwargs):
+        self.kwargs = dict(kwargs)
+
+    def __getattr__(self, attr):
+        return functools.partial(Node.view,
+            'sboard/%s' % attr, 
+            classes=get_doctype_map(),
+            **self.kwargs)
+
+
+couch = SboardCouchViews()
 
 
 class Node(schema.Document):
@@ -23,7 +61,23 @@ class Node(schema.Document):
     def get_children(self):
         # TODO: here each returned document must be mapped to model specified
         # in ``doc_type`` of that document. How to do that?
-        return Comment.view('sboard/children', key=self._id, include_docs=True)
+        return couch.children(key=self.get_id, include_docs=True)
+
+    def get_children_count(self):
+        res = couch.children_count(key=self.get_id, group=True,
+                                   include_docs=False).all()
+        if(len(res) == 0):
+            return 0
+        return res[0]['value']
+
+    def get_latest_children(self):
+        return couch.children_by_date(
+            limit=3,
+            descend=True,
+            include_docs=True,
+            startkey=[self.get_id, '0000-00-00T00:00:00'],
+            endkey=[self.get_id, '9999-99-99T99:99:99'],
+        )
 
     def get_new_id(self):
         if self.title:
@@ -68,3 +122,5 @@ class CustomImage(Image):
         return super(CustomImage, self).run()
 
 directives.register_directive('image', CustomImage)
+
+
