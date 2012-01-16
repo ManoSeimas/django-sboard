@@ -5,7 +5,7 @@ from django.utils.importlib import import_module
 from django.utils.translation import ugettext_lazy as _
 
 from .forms import NodeForm, CommentForm
-from .models import Node, Comment
+from .models import Node, Comment, get_doctype_map, couch
 
 _nodes_by_name = None
 
@@ -56,12 +56,11 @@ class BaseNode(object):
             # TODO: a hi-tech algorithm needed here, that can take all
             # comment tree, two levels deep and display this tree in one
             # cycle.
-            children = Comment.view('sboard/children', key=self.node._id,
-                                    include_docs=True, limit=10)
+            children = couch.children(key=self.node._id,
+                                      include_docs=True, limit=10)
             template = 'sboard/node_details.html'
         else:
-            children = Comment.view('sboard/topics', include_docs=True,
-                                    limit=10)
+            children = couch.topics(include_docs=True, limit=10)
             template = 'sboard/node_list.html'
 
         return render(request, template, {
@@ -92,10 +91,10 @@ class BaseNode(object):
           })
 
     def update(self, request):
-        pass
+        raise NotImplementedError
 
     def delete(self, request):
-        pass
+        raise NotImplementedError
 
 
 class CommentNode(BaseNode):
