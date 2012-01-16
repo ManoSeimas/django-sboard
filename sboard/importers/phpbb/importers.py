@@ -9,6 +9,7 @@ import urllib
 import uuid
 
 import unidecode
+from docutils import nodes
 from docutils.core import publish_parts
 
 from django.template.defaultfilters import slugify
@@ -159,12 +160,7 @@ class PhpbbParser(BBCodeParser):
         self.session = session
         self.obj = obj
 
-    def setup_handlers(self):
-        super(PhpbbParser, self).setup_handlers()
-        self.handlers['img'] = self.img_tag
-        self.handlers['attachment'] = self.attachment_tag
-
-    def handle_media(self, uri, filename=None):
+    def download_attachment(self, uri, filename=None):
         filepath, hdr = urllib.urlretrieve(uri)
         if filename is None:
             slug, ext = os.path.splitext(uri)
@@ -189,31 +185,35 @@ class PhpbbParser(BBCodeParser):
         else:
             return uri
 
-    def img_tag(self):
-        uri = self.tag.output.strip()
-        uri = self.check_image_hosting_services(uri)
-        slug = self.handle_media(uri)
-        if len(self.stack) > 0 and self.stack[-1].name == 'url':
-            tag = self.stack[-1]
-            tag.skip = True
-            target = self.get_url(tag.attrs)
-            return '\n\n.. image:: %s\n   :target: %s\n\n' % (slug, target)
+    def handle_img(self):
+        if self.is_close_tag():
+            uri = self.node_astext(self.node).strip()
+            uri = self.check_image_hosting_services(uri)
+            slug = self.download_attachment(uri)
+            self.node['uri'] = slug
+            self.node.clear()
+            self.close_element()
         else:
-            return '\n\n.. image:: %s\n\n' % slug
+            attrs = self.parse_attrs()
+            self.open_element(nodes.image(**attrs))
 
-    def attachment_tag(self):
-        filename = strip_tags(self.tag.output)
-        attachment = (self.session.query(Attachment).
-                      filter(Attachment.columns.post_msg_id == self.obj.post_id).
-                      filter(Attachment.columns.real_filename == filename).
-                      one())
-        uri = 'http://www.ubuntu.lt/forum/download/file.php?id=%d' % (
-                      attachment.attach_id)
-        slug = self.handle_media(uri, filename)
-        template = '.. image:: %(content)s'
-        return template % {
-                'content': slug,
-            }
+
+
+    def handle_attachment(self):
+        if self.is_close_tag():
+            filename = strip_tags(self.node_astext(self.node)).strip()
+            attachment = (self.session.query(Attachment).
+                          filter(Attachment.columns.post_msg_id == self.obj.post_id).
+                          filter(Attachment.columns.real_filename == filename).
+                          one())
+            uri = ('http://www.ubuntu.lt/forum/download/'
+                   'file.php?id=%d') % attachment.attach_id
+            slug = self.download_attachment(uri, filename)
+            self.node['uri'] = slug
+            self.node.clear()
+            self.close_element()
+        else:
+            self.open_element(nodes.image())
 
     def replace_smilies(self, m):
         smile = m.group(1)
