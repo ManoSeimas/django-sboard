@@ -14,7 +14,7 @@ class ParserTests(unittest.TestCase):
                      u'<!-- s:) -->')
         self.assertEqual(parser.get_rst(), u'☺')
 
-    def test_links(self):
+    def test_internal_links(self):
         # TODO: fix this test
         # this test should recongnize local links and replace url to correct
         # local url...
