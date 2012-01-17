@@ -265,6 +265,7 @@ class PhpbbMigration(MigrationBase):
     def migrate_posts(self, topic, node):
         for obj in (self.session.query(Post).
                     filter(Post.columns.post_id != topic.topic_first_post_id).
+                    filter(Post.columns.topic_id == topic.topic_id).
                     #filter(Post.columns.post_id == 7579).
                     order_by(Post.columns.post_time.desc())):
             slug = str(uuid.uuid4())
@@ -312,7 +313,7 @@ class PhpbbMigration(MigrationBase):
         for obj in (self.session.query(Topic, Post).
                     join(Post, Topic.columns.topic_first_post_id == Post.columns.post_id).
                     #filter(Topic.columns.topic_id == 7579).
-                    order_by(Topic.columns.topic_time.desc()))[:3]:
+                    order_by(Topic.columns.topic_time.desc())):
             slug = get_object_id(obj.topic_title)
             node = get_object(Node, slug)
             node.title = obj.topic_title
