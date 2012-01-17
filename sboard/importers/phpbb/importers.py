@@ -3,6 +3,7 @@
 from anytorst.bbcode import BBCodeParser
 
 import hashlib
+import htmlentitydefs
 import os
 import re
 import urllib
@@ -136,6 +137,34 @@ def get_md5_sum(f, size=128):
     return md5.hexdigest()
 
 
+##
+# Removes HTML or XML character references and entities from a text string.
+#
+# @param text The HTML (or XML) source text.
+# @return The plain text, as a Unicode string, if necessary.
+# @see http://effbot.org/zone/re-sub.htm#unescape-html
+def unescape(text):
+    def fixup(m):
+        text = m.group(0)
+        if text[:2] == "&#":
+            # character reference
+            try:
+                if text[:3] == "&#x":
+                    return unichr(int(text[3:-1], 16))
+                else:
+                    return unichr(int(text[2:-1]))
+            except ValueError:
+                pass
+        else:
+            # named entity
+            try:
+                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
+            except KeyError:
+                pass
+        return text # leave as is
+    return re.sub("&#?\w+;", fixup, text)
+
+
 class PhpbbParser(BBCodeParser):
     SMILIES = {
         ':)': u'☺',
@@ -242,18 +271,29 @@ class PhpbbMigration(MigrationBase):
             comment = get_object(Comment, slug)
             print('  %s' % comment._id)
 
+            post_text = unescape(obj.post_text)
+
             parser = PhpbbParser(self.session, obj)
-            parser.parse(obj.post_text)
+            try:
+                parser.parse(post_text)
+            except Exception as e:
+                print(e)
+                print('----------------------')
+                print(post_text)
+                print('----------------------')
+                raise e
             body = parser.get_rst()
 
             try:
                 publish_parts(source=body, writer_name='html4css1',
                               settings_overrides={'halt_level': 2})
             except Exception as e:
+                print(obj.post_text)
+                print('----------------------')
                 print(e)
-                print('--')
+                print('----------------------')
                 print(body)
-                print('--')
+                print('----------------------')
                 raise e
 
             comment.body = body
@@ -278,8 +318,17 @@ class PhpbbMigration(MigrationBase):
             node.title = obj.topic_title
             print(node._id)
 
+            post_text = unescape(obj.post_text)
+
             parser = PhpbbParser(self.session, obj)
-            parser.parse(obj.post_text)
+            try:
+                parser.parse(post_text)
+            except Exception as e:
+                print(e)
+                print('----------------------')
+                print(post_text)
+                print('----------------------')
+                raise e
             body = parser.get_rst()
 
             try:
