@@ -255,10 +255,10 @@ class PhpbbParser(BBCodeParser):
         link = m.group(1)
         return link
 
-    def handle_text(self, text):
+    def _handle_text(self, text):
         text = self.RE_SMILIES.sub(self.replace_smilies, text)
         text = self.RE_POSTLINK.sub(self.replace_postlink, text)
-        return super(PhpbbParser, self).handle_text(text)
+        return super(PhpbbParser, self)._handle_text(text)
 
 
 class PhpbbMigration(MigrationBase):
