@@ -1,24 +1,38 @@
-import functools
 import datetime
+import functools
 import unidecode
 import uuid
 
+from django.contrib.markup.templatetags import markup
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
+from django.utils.translation import ugettext_lazy as _
 
+from couchdbkit.exceptions import ResourceNotFound
 from couchdbkit.ext.django import schema
 
 from docutils.parsers.rst import directives
 from docutils.parsers.rst.directives.images import Image
 
 
-def get_doctype_map():
-    """Returns dictionary which maps between ``doc_type`` to approporate model
-    class.""" 
-    return {
-        'Comment': Comment,
-        'Node': Node,
-    }
+class DocTypeMap(dict):
+    """Special dict, that provides doc_type map for instances returned by view.
+
+    CouchDB view call can return documents with different types, this
+    dictionary provides model classes for those document types.
+    """
+    def __init__(self, *args, **kwargs):
+        super(DocTypeMap, self).__init__(*args, **kwargs)
+
+        from .nodes import get_node_classes
+        for node_class in get_node_classes().values():
+            doc_type = node_class.model.__name__
+            if doc_type not in self:
+                self[doc_type] = node_class.model
+
+
+    def get(self, key, default=None):
+        return super(DocTypeMap, self).get(key, default) or Node
 
 
 class SboardCouchViews(object):
@@ -35,26 +49,40 @@ class SboardCouchViews(object):
     arguments.
 
     """
-        
+
     def __init__(self, **kwargs):
         self.kwargs = dict(kwargs)
 
     def __getattr__(self, attr):
-        return functools.partial(Node.view,
-            'sboard/%s' % attr, 
-            classes=get_doctype_map(),
-            **self.kwargs)
+        return functools.partial(Node.view, 'sboard/%s' % attr,
+                                 classes=DocTypeMap(), **self.kwargs)
 
 
 couch = SboardCouchViews()
 
 
 class Node(schema.Document):
+    # Author, who initiali created this node.
     author = schema.StringProperty()
+
+    # Node title.
     title = schema.StringProperty()
-    body = schema.StringProperty(required=True)
+
+    # Node body in reStructuredText format.
+    body = schema.StringProperty()
+
+    # Node creation datetime.
     created = schema.DateTimeProperty(default=datetime.datetime.utcnow)
+
+    # List of all node ancestors.
     parents = schema.ListProperty()
+
+    # Node tags. Each item in this list is reference to a node.
+    tags = schema.ListProperty()
+
+    # Reference to history node (last revision of current node), this attribute
+    # can be None if node was never modified.
+    history = schema.StringProperty()
 
     _parent = None
 
@@ -91,20 +119,89 @@ class Node(schema.Document):
     def get_parent(self):
         if self._parent is None:
             if self.has_parent:
-                # TODO: returned instance must bu mapped to model described in
+                # TODO: returned instance must be mapped to model described in
                 # ``doc_type``.
                 self._parent = self.get(self.parents[-1])
         return self._parent
 
+    def set_parents(self, parent_node):
+        """Sets ``parents`` property by given parent node."""
+        if parent_node:
+            self.parents = list(parent_node.parents) or []
+            self.parents.append(parent_node._id)
+        else:
+            self.parents = []
+
     def get_title(self):
         return self.title
+
+    @classmethod
+    def get_or_none(cls, id):
+        try:
+            return cls.get(id)
+        except ResourceNotFound:
+            return None
+
+    def render_body(self):
+        return markup.restructuredtext(self.body)
+    render_body.is_safe = True
 
     def permalink(self):
         return reverse('node_details', args=[self._id])
 
+    def tag_url(self):
+        return reverse('node_tag', args=[self._id])
+
 
 class Comment(Node):
     pass
+
+
+class History(Node):
+    change_choices = tuple()
+
+    # Full node dict, that was some how changed.
+    node = schema.DictProperty()
+
+    # A slug, that describes what kind of change was made.
+    change = schema.StringProperty()
+
+    @classmethod
+    def create(cls, node, change):
+        self = cls()
+        self._id = self.get_new_id()
+        if change in self.change_choices:
+            self.change = change
+        else:
+            raise KeyError("Change '%s' is not in change choices." % change)
+        self.set_parents(node)
+        self.node = dict(node)
+        self.save()
+        return self
+
+    def render_body(self):
+        return _('Node was modified.')
+
+
+class Tag(Node):
+    @classmethod
+    def create(cls, tag):
+        self = cls()
+        self._id = tag
+        self.save()
+        return self
+
+    @classmethod
+    def create_if_not_exists(cls, tag):
+        self = cls.get_or_none(tag)
+        if self is None:
+            return cls.create(tag)
+        else:
+            return self
+
+
+class TagsChange(History):
+    change_choices = ('tags-change',)
 
 
 class Media(schema.Document):
@@ -122,5 +219,3 @@ class CustomImage(Image):
         return super(CustomImage, self).run()
 
 directives.register_directive('image', CustomImage)
-
-

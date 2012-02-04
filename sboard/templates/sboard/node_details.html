@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load markup %}
 {% load i18n %}
 
 {% block title %}
@@ -16,7 +15,23 @@
 
 {% block content %}
 {% if node %}
-{{ node.body|restructuredtext }}
+{{ node.render_body }}
+
+<div>
+  {% for tag in node.tags %}
+  <a href="{% url node_details tag %}"><i class="icon-tag"></i>{{ tag }}</a>
+  {% endfor %}
+</div>
+
+<hr />
+
+<h2>{% trans "Add tag" %}</h2>
+
+<form action="{{ node.tag_url }}" method="post">
+    {% csrf_token %}
+    <p>{{ tag_form.tag.errors }}{{ tag_form.tag }}</p>
+    <p><button type="submit" class="btn btn-primary">{% trans "Save" %}</button></p>
+</form>
 
 <hr />
 
@@ -31,11 +46,11 @@
 
 {% for child in children %}
 <hr />
-{{ child.body|restructuredtext }}
+{{ child.render_body }}
 <p><a href="{% url node_details child.get_id %}">{% trans "answer to this comment" %}</a></p>
 
 {% for comment in child.get_children %}
-<div class="sub-comment">{{ comment.body|restructuredtext }}</div>
+<div class="sub-comment">{{ comment.render_body }}</div>
 {% endfor %}
 
 {% endfor %}

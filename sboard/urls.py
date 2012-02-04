@@ -7,6 +7,7 @@ node = patterns('sboard.views',
     url(r'^create/$', 'node_create', name='node_create_child'),
     url(r'^update/$', 'node_update', name='node_update'),
     url(r'^delete/$', 'node_delete', name='node_delete'),
+    url(r'^tag/$', 'node_tag', name='node_tag'),
 )
 
 media = patterns('sboard.views',

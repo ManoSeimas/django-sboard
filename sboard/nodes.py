@@ -4,25 +4,28 @@ from django.shortcuts import render, redirect
 from django.utils.importlib import import_module
 from django.utils.translation import ugettext_lazy as _
 
-from .forms import NodeForm, CommentForm
-from .models import Node, Comment, get_doctype_map, couch
+from .forms import NodeForm, TagForm, CommentForm
+from .models import Node, Comment, Tag, TagsChange, History, couch
 
 _nodes_by_name = None
 
 
-def get_node_view_class(name):
+def get_node_classes():
     global _nodes_by_name
     if _nodes_by_name is None:
         _nodes_by_name = {
+            'tag': TagNode,
             'node': BaseNode,
             'comment': CommentNode,
+            'history': HistoryNode,
+            'tagschange': TagsChangeNode,
         }
         for item in settings.SBOARD_NODES:
             module_name, class_name = item.rsplit('.', 1)
             module = import_module(module_name)
             node_class = getattr(module, class_name)
             _nodes_by_name[node_class.name] = node_class
-    return _nodes_by_name[name]
+    return _nodes_by_name
 
 
 def get_node_view(key=None):
@@ -31,7 +34,8 @@ def get_node_view(key=None):
         return BaseNode()
     else:
         node = Node.get(key)
-        view_class = get_node_view_class(node.doc_type.lower())
+        node_classes = get_node_classes()
+        view_class = node_classes[node.doc_type.lower()]
         return view_class(node)
 
 
@@ -51,7 +55,7 @@ class BaseNode(object):
     def __init__(self, node=None):
         self.node = node
 
-    def details(self, request):
+    def details(self, request, context_overrides=None):
         if self.node:
             # TODO: a hi-tech algorithm needed here, that can take all
             # comment tree, two levels deep and display this tree in one
@@ -63,11 +67,19 @@ class BaseNode(object):
             children = couch.topics(include_docs=True, limit=10)
             template = 'sboard/node_list.html'
 
-        return render(request, template, {
-              'node': self.node,
-              'children': children,
-              'comment_form': CommentForm(),
-          })
+        context = {
+            'node': self.node,
+            'children': children,
+        }
+        context.update(context_overrides or {})
+
+        if 'tag_form' not in context:
+            context['tag_form'] = TagForm(self.node)
+
+        if 'comment_form' not in context:
+            context['comment_form'] = CommentForm()
+
+        return render(request, template, context)
 
     def create(self, request):
         if request.method == 'POST':
@@ -75,13 +87,12 @@ class BaseNode(object):
             if form.is_valid():
                 node = form.save(commit=False)
                 node._id = node.get_new_id()
+                node.set_parents(self.node)
+                node.save()
+
                 if self.node:
-                    node.parents = self.node.parents or []
-                    node.parents.append(self.node._id)
-                    node.save()
                     return redirect(self.node.permalink())
                 else:
-                    node.save()
                     return redirect(node.permalink())
         else:
             form = self.form()
@@ -96,6 +107,23 @@ class BaseNode(object):
     def delete(self, request):
         raise NotImplementedError
 
+    def tag(self, request):
+        if request.method != 'POST':
+            raise Http404
+
+        form = TagForm(self.node, request.POST)
+        if form.is_valid():
+            Tag.create_if_not_exists(form.cleaned_data['tag'])
+            history_node = TagsChange.create(self.node, 'tags-change')
+            self.node.tags.append(form.cleaned_data['tag'])
+            self.node.history = history_node._id
+            self.node.save()
+            return redirect(self.node.permalink())
+        else:
+            return self.details(request, {
+                'tag_form': form,
+            })
+
 
 class CommentNode(BaseNode):
     slug = 'comment'
@@ -109,3 +137,39 @@ class CommentNode(BaseNode):
             raise Http404
         else:
             return super(CommentNode, self).create(request)
+
+
+class TagNode(BaseNode):
+    slug = 'tag'
+    name = _('Tag')
+    model = Tag
+
+    def details(self, request, context_overrides=None):
+        children = couch.by_tag(key=self.node._id, include_docs=True, limit=10)
+        template = 'sboard/node_list.html'
+
+        context = {
+            'node': self.node,
+            'children': children,
+        }
+        context.update(context_overrides or {})
+
+        if 'tag_form' not in context:
+            context['tag_form'] = TagForm(self.node)
+
+        if 'comment_form' not in context:
+            context['comment_form'] = CommentForm()
+
+        return render(request, template, context)
+
+
+class HistoryNode(BaseNode):
+    slug = 'history'
+    name = _('History')
+    model = History
+
+
+class TagsChangeNode(BaseNode):
+    slug = 'tags-change'
+    name = _('Tags change')
+    model = TagsChange

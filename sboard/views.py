@@ -2,7 +2,9 @@ import StringIO
 
 from PIL import Image
 
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
+
+from couchdbkit.exceptions import ResourceNotFound
 
 from .models import Node, Media
 from .nodes import get_node_view, CommentNode
@@ -14,7 +16,10 @@ def node_details(request, key=None):
         view = CommentNode(node)
         return view.create(request)
     else:
-        view = get_node_view(key)
+        try:
+            view = get_node_view(key)
+        except ResourceNotFound:
+            raise Http404
         return view.details(request)
 
 
@@ -35,6 +40,11 @@ def node_update(request, key):
 def node_delete(request, key):
     view = get_node_view(key)
     return view.delete(request)
+
+
+def node_tag(request, key):
+    view = get_node_view(key)
+    return view.tag(request)
 
 
 def render_image(request, slug, ext):
