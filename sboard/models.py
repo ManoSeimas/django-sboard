@@ -1,11 +1,8 @@
 import datetime
 import functools
-import unidecode
-import uuid
 
 from django.contrib.markup.templatetags import markup
 from django.core.urlresolvers import reverse
-from django.template.defaultfilters import slugify
 from django.utils.translation import ugettext_lazy as _
 
 from couchdbkit.exceptions import ResourceNotFound
@@ -13,6 +10,8 @@ from couchdbkit.ext.django import schema
 
 from docutils.parsers.rst import directives
 from docutils.parsers.rst.directives.images import Image
+
+from .utils import get_node_id
 
 
 class DocTypeMap(dict):
@@ -51,11 +50,30 @@ class SboardCouchViews(object):
     """
 
     def __init__(self, **kwargs):
+        self._doc_type_map = None
         self.kwargs = dict(kwargs)
+
+    def get_doc_type_map(self):
+        if self._doc_type_map is None:
+            self._doc_type_map = DocTypeMap()
+        return self._doc_type_map
 
     def __getattr__(self, attr):
         return functools.partial(Node.view, 'sboard/%s' % attr,
-                                 classes=DocTypeMap(), **self.kwargs)
+                                 classes=self.get_doc_type_map(), **self.kwargs)
+
+    def wrap(self, data):
+        cls = self.get_doc_type_map().get(data['doc_type'])
+        return cls.wrap(data)
+
+    def get(self, docid, rev=None):
+        db = Node.get_db()
+        return db.get(docid, rev=rev, wrapper=self.wrap)
+
+    def view(self, view, **kwargs):
+        kwargs.setdefault('include_docs', True)
+        kwargs.setdefault('classes', self.get_doc_type_map())
+        return Node.view(view, **kwargs)
 
 
 couch = SboardCouchViews()
@@ -108,10 +126,7 @@ class Node(schema.Document):
         )
 
     def get_new_id(self):
-        if self.title:
-            return slugify(unidecode.unidecode(self.title))
-        else:
-            return str(uuid.uuid4())
+        return get_node_id(self.title)
 
     def has_parent(self):
         return self.parents and len(self.parents) > 0

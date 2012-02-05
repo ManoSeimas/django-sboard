@@ -7,13 +7,13 @@ from django.utils.translation import ugettext_lazy as _
 from .forms import NodeForm, TagForm, CommentForm
 from .models import Node, Comment, Tag, TagsChange, History, couch
 
-_nodes_by_name = None
+_nodes_by_model = None
 
 
 def get_node_classes():
-    global _nodes_by_name
-    if _nodes_by_name is None:
-        _nodes_by_name = {
+    global _nodes_by_model
+    if _nodes_by_model is None:
+        _nodes_by_model = {
             'tag': TagNode,
             'node': BaseNode,
             'comment': CommentNode,
@@ -24,8 +24,8 @@ def get_node_classes():
             module_name, class_name = item.rsplit('.', 1)
             module = import_module(module_name)
             node_class = getattr(module, class_name)
-            _nodes_by_name[node_class.name] = node_class
-    return _nodes_by_name
+            _nodes_by_model[node_class.model.__name__.lower()] = node_class
+    return _nodes_by_model
 
 
 def get_node_view(key=None):
@@ -33,7 +33,7 @@ def get_node_view(key=None):
     if key is None:
         return BaseNode()
     else:
-        node = Node.get(key)
+        node = couch.get(key)
         node_classes = get_node_classes()
         view_class = node_classes[node.doc_type.lower()]
         return view_class(node)
