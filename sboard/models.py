@@ -52,6 +52,7 @@ class SboardCouchViews(object):
     def __init__(self, **kwargs):
         self._doc_type_map = None
         self.kwargs = dict(kwargs)
+        self.kwargs.setdefault('include_docs', True)
 
     def get_doc_type_map(self):
         if self._doc_type_map is None:
