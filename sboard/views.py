@@ -6,45 +6,27 @@ from django.http import HttpResponse, Http404
 
 from couchdbkit.exceptions import ResourceNotFound
 
-from .models import Node, Media
-from .nodes import get_node_view, CommentNode
+from .models import Media
+from .nodes import get_node_view, get_node_classes
 
 
-def node_details(request, key=None):
-    if request.method == 'POST':
-        node = Node.get(key)
-        view = CommentNode(node)
-        return view.create(request)
+def node(request, key=None, view='details'):
+    if key is not None:
+        for node_class in get_node_classes().values():
+            if node_class.slug == key:
+                node = node_class()
+                return node.list_view(request)
+
+    try:
+        node = get_node_view(key)
+    except ResourceNotFound:
+        raise Http404
+
+    _view = getattr(node, '%s_view' % view, None)
+    if _view is None:
+        raise Http404
     else:
-        try:
-            view = get_node_view(key)
-        except ResourceNotFound:
-            raise Http404
-        return view.details(request)
-
-
-def node_create(request, key=None):
-    if key is None:
-        view = get_node_view(key)
-    else:
-        node = Node.get(key)
-        view = CommentNode(node)
-    return view.create(request)
-
-
-def node_update(request, key):
-    view = get_node_view(key)
-    return view.update(request)
-
-
-def node_delete(request, key):
-    view = get_node_view(key)
-    return view.delete(request)
-
-
-def node_tag(request, key):
-    view = get_node_view(key)
-    return view.tag(request)
+        return _view(request)
 
 
 def render_image(request, slug, ext):

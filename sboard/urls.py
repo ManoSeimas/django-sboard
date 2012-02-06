@@ -3,11 +3,11 @@ from django.conf.urls.defaults import patterns, url, include
 slug = r'[a-z0-9-]+'
 
 node = patterns('sboard.views',
-    url(r'^$', 'node_details', name='node_details'),
-    url(r'^create/$', 'node_create', name='node_create_child'),
-    url(r'^update/$', 'node_update', name='node_update'),
-    url(r'^delete/$', 'node_delete', name='node_delete'),
-    url(r'^tag/$', 'node_tag', name='node_tag'),
+    url(r'^$', 'node', {'view': 'details'}, name='node_details'),
+    url(r'^create/$', 'node', {'view': 'create'}, name='node_create_child'),
+    url(r'^update/$', 'node', {'view': 'update'}, name='node_update'),
+    url(r'^delete/$', 'node', {'view': 'delete'}, name='node_delete'),
+    url(r'^tag/$', 'node', {'view': 'tag'}, name='node_tag'),
 )
 
 media = patterns('sboard.views',
@@ -16,8 +16,8 @@ media = patterns('sboard.views',
 )
 
 urlpatterns = patterns('sboard.views',
-    url(r'^$', 'node_details', name='node_list'),
-    url(r'^create/$', 'node_create', name='node_create'),
+    url(r'^$', 'node', {'view': 'details'}, name='node_list'),
+    url(r'^create/$', 'node', {'view': 'create'}, name='node_create'),
     url(r'^media/', include(media)),
     url(r'^(?P<key>%s)/' % slug, include(node)),
 )

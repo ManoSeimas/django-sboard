@@ -46,7 +46,7 @@ class BaseNode(object):
     handling logic and response preparation.
     """
 
-    slug = 'node'
+    slug = None
     name = _('Node')
     node = None
     model = Node
@@ -55,7 +55,24 @@ class BaseNode(object):
     def __init__(self, node=None):
         self.node = node
 
-    def details(self, request, context_overrides=None):
+    def list_view(self, request):
+        children = couch.by_type(key=self.model.__name__, limit=50)
+        template = 'sboard/node_list.html'
+
+        context = {
+            'node': self.node,
+            'children': children,
+        }
+
+        if 'tag_form' not in context:
+            context['tag_form'] = TagForm(self.node)
+
+        if 'comment_form' not in context:
+            context['comment_form'] = CommentForm()
+
+        return render(request, template, context)
+
+    def details_view(self, request, context_overrides=None):
         if self.node:
             # TODO: a hi-tech algorithm needed here, that can take all
             # comment tree, two levels deep and display this tree in one
@@ -81,7 +98,7 @@ class BaseNode(object):
 
         return render(request, template, context)
 
-    def create(self, request):
+    def create_view(self, request):
         if request.method == 'POST':
             form = self.form(request.POST)
             if form.is_valid():
@@ -101,13 +118,13 @@ class BaseNode(object):
               'form': form,
           })
 
-    def update(self, request):
+    def update_view(self, request):
         raise NotImplementedError
 
-    def delete(self, request):
+    def delete_view(self, request):
         raise NotImplementedError
 
-    def tag(self, request):
+    def tag_view(self, request):
         if request.method != 'POST':
             raise Http404
 
@@ -126,13 +143,13 @@ class BaseNode(object):
 
 
 class CommentNode(BaseNode):
-    slug = 'comment'
+    slug = 'comments'
     name = _('Comment')
     node = None
     model = Comment
     form = CommentForm
 
-    def create(self, request):
+    def create_view(self, request):
         if not self.node:
             raise Http404
         else:
@@ -140,11 +157,11 @@ class CommentNode(BaseNode):
 
 
 class TagNode(BaseNode):
-    slug = 'tag'
+    slug = 'tags'
     name = _('Tag')
     model = Tag
 
-    def details(self, request, context_overrides=None):
+    def details_view(self, request, context_overrides=None):
         children = couch.by_tag(key=self.node._id, include_docs=True, limit=10)
         template = 'sboard/node_list.html'
 
@@ -164,12 +181,10 @@ class TagNode(BaseNode):
 
 
 class HistoryNode(BaseNode):
-    slug = 'history'
     name = _('History')
     model = History
 
 
 class TagsChangeNode(BaseNode):
-    slug = 'tags-change'
     name = _('Tags change')
     model = TagsChange
