@@ -137,7 +137,7 @@ class BaseNode(object):
             self.node.save()
             return redirect(self.node.permalink())
         else:
-            return self.details(request, {
+            return self.details_view(request, {
                 'tag_form': form,
             })
 
