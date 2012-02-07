@@ -14,11 +14,12 @@
 {% endblock %}
 
 {% block content %}
+{% if children %}
 {% for child in children %}
 <div class="list-entry">
   <h2><a href="{{ child.permalink }}">{{ child.title }}</a></h2>
   <p>{{ child.render_body|striptags|truncatewords:50 }}</p>
-  <div class="comment-count">Number of comments: <em>{{ child.get_children_count }}</em></div>
+  <div class="comment-count">{% trans "Number of comments:" %} <em>{{ child.get_children_count }}</em></div>
   {% for comment in child.get_latest_children %}
   <div class="sub-comment">
     <p>{{ comment.render_body|striptags|truncatewords:20 }}</p>
@@ -26,4 +27,7 @@
   {% endfor %}
 </div>
 {% endfor %}
+{% else %}
+<p>{% trans "No entries found." %}</p>
+{% endif %}
 {% endblock %}
