@@ -39,6 +39,15 @@ def get_node_view(key=None):
         return view_class(node)
 
 
+def get_node_urls():
+    urls = []
+    for node_class in get_node_classes().values():
+        _urls = node_class.get_urls()
+        if _urls is not None:
+            urls += _urls
+    return urls
+
+
 class BaseNode(object):
     """Base node view class.
 
@@ -56,6 +65,10 @@ class BaseNode(object):
 
     def __init__(self, node=None):
         self.node = node
+
+    @classmethod
+    def get_urls(cls):
+        return None
 
     def list_view(self, request):
         children = couch.by_type(key=self.model.__name__, limit=50)

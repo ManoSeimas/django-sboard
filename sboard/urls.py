@@ -1,5 +1,7 @@
 from django.conf.urls.defaults import patterns, url, include
 
+from .nodes import get_node_urls
+
 slug = r'[a-z0-9-]+'
 
 node = patterns('sboard.views',
@@ -9,6 +11,8 @@ node = patterns('sboard.views',
     url(r'^delete/$', 'node', {'view': 'delete'}, name='node_delete'),
     url(r'^tag/$', 'node', {'view': 'tag'}, name='node_tag'),
 )
+
+node += get_node_urls()
 
 media = patterns('sboard.views',
     url(r'^(?P<slug>%s)/normal.(?P<ext>[a-z0-9]+)$' % slug, 'render_image',
