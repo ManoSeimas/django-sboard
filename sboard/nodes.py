@@ -70,29 +70,38 @@ class BaseNode(object):
     def get_urls(cls):
         return None
 
-    def list_view(self, request):
-        children = couch.by_type(key=self.model.__name__, limit=50)
-        template = 'sboard/node_list.html'
+    def get_node_list(self):
+        return couch.by_type(key=self.model.__name__, limit=50)
+
+    def list_view(self, request, overrides=None):
+        overrides = overrides or {}
+        get_node_list = overrides.pop('get_node_list', self.get_node_list)
+        template = self.templates.get('list', 'sboard/node_list.html')
+        template = overrides.pop('template', template)
 
         context = {
             'node': self.node,
-            'children': children,
+            'children': get_node_list(),
         }
-
+        context.update(overrides or {})
         return render(request, template, context)
 
-    def details_view(self, request, context_overrides=None):
+    def details_view(self, request, overrides=None):
         # TODO: a hi-tech algorithm needed here, that can take all
         # comment tree, two levels deep and display this tree in one
         # cycle.
         children = couch.children(key=self.node._id,
                                   include_docs=True, limit=10)
 
+        overrides = overrides or {}
+        template = self.templates.get('details', 'sboard/node_details.html')
+        template = overrides.pop('template', template)
+
         context = {
             'node': self.node,
             'children': children,
         }
-        context.update(context_overrides or {})
+        context.update(overrides)
 
         if 'tag_form' not in context:
             context['tag_form'] = TagForm(self.node)
@@ -100,7 +109,6 @@ class BaseNode(object):
         if 'comment_form' not in context:
             context['comment_form'] = CommentForm()
 
-        template = self.templates.get('details', 'sboard/node_details.html')
         return render(request, template, context)
 
     def create_view(self, request):
