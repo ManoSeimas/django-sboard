@@ -64,25 +64,15 @@ class BaseNode(object):
             'children': children,
         }
 
-        if 'tag_form' not in context:
-            context['tag_form'] = TagForm(self.node)
-
-        if 'comment_form' not in context:
-            context['comment_form'] = CommentForm()
-
         return render(request, template, context)
 
     def details_view(self, request, context_overrides=None):
-        if self.node:
-            # TODO: a hi-tech algorithm needed here, that can take all
-            # comment tree, two levels deep and display this tree in one
-            # cycle.
-            children = couch.children(key=self.node._id,
-                                      include_docs=True, limit=10)
-            template = 'sboard/node_details.html'
-        else:
-            children = couch.topics(include_docs=True, limit=10)
-            template = 'sboard/node_list.html'
+        # TODO: a hi-tech algorithm needed here, that can take all
+        # comment tree, two levels deep and display this tree in one
+        # cycle.
+        children = couch.children(key=self.node._id,
+                                  include_docs=True, limit=10)
+        template = 'sboard/node_details.html'
 
         context = {
             'node': self.node,

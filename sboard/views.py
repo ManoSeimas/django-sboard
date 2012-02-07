@@ -10,7 +10,7 @@ from .models import Media
 from .nodes import get_node_view, get_node_classes
 
 
-def node(request, key=None, view='details'):
+def node(request, key=None, view='list'):
     if key is not None:
         for node_class in get_node_classes().values():
             if node_class.slug == key:
