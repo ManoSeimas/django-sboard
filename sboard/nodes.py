@@ -52,6 +52,8 @@ class BaseNode(object):
     model = Node
     form = NodeForm
 
+    templates = {}
+
     def __init__(self, node=None):
         self.node = node
 
@@ -72,7 +74,6 @@ class BaseNode(object):
         # cycle.
         children = couch.children(key=self.node._id,
                                   include_docs=True, limit=10)
-        template = 'sboard/node_details.html'
 
         context = {
             'node': self.node,
@@ -86,6 +87,7 @@ class BaseNode(object):
         if 'comment_form' not in context:
             context['comment_form'] = CommentForm()
 
+        template = self.templates.get('details', 'sboard/node_details.html')
         return render(request, template, context)
 
     def create_view(self, request):
