@@ -297,7 +297,6 @@ class PhpbbMigration(MigrationBase):
                 print('----------------------')
                 raise e
 
-            comment.body = body
             comment.parents = [node._id]
             comment.migrate = {
                 'type': 'phpbb',
@@ -306,6 +305,7 @@ class PhpbbMigration(MigrationBase):
                 'forum_id': obj.forum_id,
               }
             comment.save()
+            comment.set_body(body)
 
 
 
@@ -342,8 +342,6 @@ class PhpbbMigration(MigrationBase):
                 print('--')
                 raise e
 
-            node.body = body
-
             node.migrate = {
                 'type': 'phpbb',
                 'post_id': obj.post_id,
@@ -351,5 +349,6 @@ class PhpbbMigration(MigrationBase):
                 'forum_id': obj.forum_id,
               }
             node.save()
+            node.set_body(body)
 
             self.migrate_posts(obj, node)

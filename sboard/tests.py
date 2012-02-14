@@ -5,18 +5,26 @@ from sboard.models import Node, couch, Comment
 class SimpleTest(TestCase):
     def setUp(self):
         text = 'simple-test-case-1'
-        t1 = Node(title=text, body=text)
+        t1 = Node(title=text)
         t1.save()
-        t2 = Comment(body=text + '-comment-1', parents=[t1._id])
+        t1.set_body(text)
+
+        t2 = Comment(parents=[t1._id])
         t2.save()
-        t3 = Comment(body=text + '-comment-2', parents=[t1._id])
+        t2.set_body(text + '-comment-1')
+
+        t3 = Comment(parents=[t1._id])
         t3.save()
-        t4 = Node(body=text + '-comment-2', parents=[t1._id])
+        t3.set_bodytext + '-comment-2'()
+
+        t4 = Node(parents=[t1._id])
         t4.save()
+        t4.set_body(text + '-comment-2')
+
         self.comments = [t2._id, t3._id]
         self.nodes = [t1._id, t4._id]
         self.parent_id = t1._id
-    
+
     def testChildrenCount(self):
         topic = couch.topics(key=self.parent_id, include_docs=True).all()[0]
         self.assertEqual(topic.get_children_count(), 3)

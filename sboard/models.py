@@ -87,9 +87,6 @@ class Node(schema.Document):
     # Node title.
     title = schema.StringProperty()
 
-    # Node body in reStructuredText format.
-    body = schema.StringProperty()
-
     # Node creation datetime.
     created = schema.DateTimeProperty(default=datetime.datetime.utcnow)
 
@@ -158,8 +155,16 @@ class Node(schema.Document):
         except ResourceNotFound:
             return None
 
+    def get_body(self):
+        return self.fetch_attachment('body')
+
+    def set_body(self, body, content_type='text/restructured'):
+        self.put_attachment(body, 'body', 'text/html')
+
     def render_body(self):
-        return markup.restructuredtext(self.body)
+        # TODO: only render content with restructuredtext if content type is
+        # text/restructured
+        return markup.restructuredtext(self.get_body())
     render_body.is_safe = True
 
     def permalink(self):

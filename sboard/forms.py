@@ -6,6 +6,8 @@ from .models import Node, Comment
 
 
 class NodeForm(DocumentForm):
+    body = forms.CharField()
+
     class Meta:
         document = Node
         properties = ('title', 'body')
