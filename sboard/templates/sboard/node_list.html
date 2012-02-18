@@ -16,9 +16,14 @@
 {% endblock %}
 
 {% block content %}
+  {% if node and node.title %}
+    <h1>{{ node.title }}</h1>
+  {% endif %}
+
   {% if children %}
     {% for child in children %}
     <div class="list-entry">
+      [{{ child.created|date:"SHORT_DATE_FORMAT" }}]
       <a href="{{ child.permalink }}">{{ child.title }}</a>
       <hr />
     </div>
