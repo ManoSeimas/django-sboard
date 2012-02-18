@@ -14,7 +14,9 @@
 {% endblock %}
 
 {% block content %}
+  {% block node_body %}
   {{ node.render_body }}
+  {% endblock %}
   
   <div>
     {% for tag in node.tags %}
