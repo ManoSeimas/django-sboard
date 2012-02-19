@@ -22,6 +22,7 @@ media = patterns('sboard.views',
 urlpatterns = patterns('sboard.views',
     url(r'^$', 'node', {'view': 'list'}, name='node_list'),
     url(r'^create/$', 'node', {'view': 'create'}, name='node_create'),
+    url(r'^search/$', 'node', {'view': 'search'}, name='node_search'),
     url(r'^media/', include(media)),
     url(r'^(?P<key>%s)/' % slug, include(node)),
 )

@@ -4,8 +4,12 @@ from django.shortcuts import render, redirect
 from django.utils.importlib import import_module
 from django.utils.translation import ugettext_lazy as _
 
+from pyes import TermQuery, Search
+
+from . import es
 from .forms import NodeForm, TagForm, CommentForm
-from .models import Node, Comment, Tag, TagsChange, History, couch
+from .models import Node, Comment, Tag, TagsChange, History, DocTypeMap, couch
+
 
 _nodes_by_model = None
 
@@ -82,6 +86,30 @@ class BaseNode(object):
         context = {
             'node': self.node,
             'children': get_node_list(),
+        }
+        context.update(overrides or {})
+        return render(request, template, context)
+
+    def search_view(self, request, overrides=None):
+        query = request.GET.get('q')
+        if not query:
+            raise Http404
+
+        doc_type_map = DocTypeMap()
+        q = TermQuery('title', query)
+        search = Search(q, sort={'created': {'order': 'desc'}})
+
+        results = es.conn.search(search)[:25]
+        results = [doc_type_map[doc.get('doc_type')].wrap(doc)
+                   for doc in results]
+
+        overrides = overrides or {}
+        template = self.templates.get('list', 'sboard/node_list.html')
+        template = overrides.pop('template', template)
+
+        context = {
+            'node': self.node,
+            'children': results,
         }
         context.update(overrides or {})
         return render(request, template, context)
