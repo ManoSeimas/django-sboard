@@ -100,7 +100,19 @@ class Node(schema.Document):
     # can be None if node was never modified.
     history = schema.StringProperty()
 
+    # Each node can override this value, tho change default node importance.
+    _default_importance = 5
+
+    # This property specifies node importance. This property is mainly used
+    # when searching nodes. Nodes with bigger importance appears at the top of
+    # search results.
+    importance = schema.IntegerProperty()
+
     _parent = None
+
+    def __init__(self, *args, **kwargs):
+        self._properties['importance'].default = self._default_importance
+        super(Node, self).__init__(*args, **kwargs)
 
     def get_children(self):
         # TODO: here each returned document must be mapped to model specified
