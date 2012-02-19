@@ -97,7 +97,10 @@ class BaseNode(object):
 
         doc_type_map = DocTypeMap()
         q = TermQuery('title', query)
-        search = Search(q, sort={'created': {'order': 'desc'}})
+        search = Search(q, sort=[
+                {'importance': {'order': 'desc'}},
+                {'created': {'order': 'desc'}},
+            ])
 
         results = es.conn.search(search)[:25]
         results = [doc_type_map[doc.get('doc_type')].wrap(doc)
