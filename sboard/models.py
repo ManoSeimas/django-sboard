@@ -168,7 +168,10 @@ class Node(schema.Document):
             return None
 
     def get_body(self):
-        return self.fetch_attachment('body')
+        try:
+            return self.fetch_attachment('body')
+        except ResourceNotFound:
+            return None
 
     def set_body(self, body, content_type='text/restructured'):
         self.put_attachment(body, 'body', 'text/html')
