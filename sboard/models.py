@@ -178,6 +178,12 @@ class Node(schema.Document):
     def set_body(self, body, content_type='text/restructured'):
         self.put_attachment(body, 'body', 'text/html')
 
+    def save(self):
+        body = self._doc.pop('body', None)
+        super(Node, self).save()
+        if body is not None:
+            self.set_body(body)
+
     def render_body(self):
         # TODO: only render content with restructuredtext if content type is
         # text/restructured
