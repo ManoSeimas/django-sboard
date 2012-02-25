@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.http import Http404
 from django.shortcuts import render, redirect
 from django.utils.importlib import import_module
@@ -73,6 +74,9 @@ class BaseNode(object):
     model = Node
     form = NodeForm
 
+    # This property specifies if node can be created from list view.
+    list_create = False
+
     templates = {}
 
     def __init__(self, node=None):
@@ -81,6 +85,18 @@ class BaseNode(object):
     @classmethod
     def get_urls(cls):
         return None
+
+    def get_create_links(self):
+        for node in get_node_classes().values():
+            if node.list_create:
+                if self.node:
+                    args = (self.node._id, node.model.__name__.lower())
+                    link = reverse('node_create_child', args=args)
+                    yield link, node.name
+                else:
+                    args = (node.model.__name__.lower(),)
+                    link = reverse('node_create', args=args)
+                    yield link, node.name
 
     def get_node_list(self):
         if self.node:
@@ -98,6 +114,7 @@ class BaseNode(object):
         template = overrides.pop('template', template)
 
         context = {
+            'view': self,
             'node': self.node,
             'children': get_node_list(),
         }
@@ -125,6 +142,7 @@ class BaseNode(object):
         template = overrides.pop('template', template)
 
         context = {
+            'view': self,
             'node': self.node,
             'children': results,
         }
@@ -143,6 +161,7 @@ class BaseNode(object):
         template = overrides.pop('template', template)
 
         context = {
+            'view': self,
             'node': self.node,
             'children': children,
         }
@@ -227,6 +246,7 @@ class TagNode(BaseNode):
         template = 'sboard/node_list.html'
 
         context = {
+            'view': self,
             'node': self.node,
             'children': children,
         }

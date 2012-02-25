@@ -11,3 +11,5 @@ class LinkNode(BaseNode):
     name = _('Link')
     model = Link
     form = LinkForm
+
+    list_create = True

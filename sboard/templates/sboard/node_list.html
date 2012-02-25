@@ -28,19 +28,9 @@
           <b class="caret"></b>
         </a>
         <ul class="dropdown-menu">
-          {% if node %}
-          <li><a href="{% url node_create_child node.get_id "link" %}">{% trans "Link" %}</a></li>
-          <li><a href="{% url node_create_child node.get_id "article" %}">{% trans "Article" %}</a></li>
-          <li><a href="{% url node_create_child node.get_id "discussion" %}">{% trans "Discussion" %}</a></li>
-          <li><a href="{% url node_create_child node.get_id "question" %}">{% trans "Question" %}</a></li>
-          <li><a href="{% url node_create_child node.get_id "screenshot" %}">{% trans "Screenshot" %}</a></li>
-          {% else %}
-          <li><a href="{% url node_create "link" %}">{% trans "Link" %}</a></li>
-          <li><a href="{% url node_create "article" %}">{% trans "Article" %}</a></li>
-          <li><a href="{% url node_create "discussion" %}">{% trans "Discussion" %}</a></li>
-          <li><a href="{% url node_create "question" %}">{% trans "Question" %}</a></li>
-          <li><a href="{% url node_create "screenshot" %}">{% trans "Screenshot" %}</a></li>
-          {% endif %}
+          {% for link, label in view.get_create_links %}
+          <li><a href="{{ link }}">{{ label }}</a></li>
+          {% endfor %}
         </ul>
       </li>
     </ul>
