@@ -5,7 +5,10 @@ from .nodes import get_node_urls
 slug = r'[a-z0-9-]+'
 
 node = patterns('sboard.views',
-    url(r'^$', 'node', {'view': 'details'}, name='node_details'),
+    url(r'^$', 'node', name='node_details'),
+    # URL bellow will never match, but is used only for name to be possible to
+    # reverse to node_list instead of node_details
+    url(r'^$', 'node', name='node_list'),
     url(r'^create/$', 'node', {'view': 'create'}, name='node_create_child'),
     url(r'^create/(?P<node_type>%s)/$' % slug, 'node', {'view': 'create'},
         name='node_create_child'),

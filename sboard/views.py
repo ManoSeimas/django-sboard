@@ -7,20 +7,20 @@ from django.http import HttpResponse, Http404
 from couchdbkit.exceptions import ResourceNotFound
 
 from .models import Media
-from .nodes import get_node_view, get_node_classes
+from .nodes import get_node_view
 
 
-def node(request, key=None, view='list', node_type=None):
-    if key is not None:
-        for node_class in get_node_classes().values():
-            if node_class.slug == key:
-                node = node_class()
-                return node.list_view(request)
-
+def node(request, key=None, view=None, node_type=None):
     try:
         node = get_node_view(key, node_type)
     except ResourceNotFound:
         raise Http404
+
+    if view is None:
+        if node.listing:
+            view = 'list'
+        else:
+            view = 'details'
 
     _view = getattr(node, '%s_view' % view, None)
     if _view is None:

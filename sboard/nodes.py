@@ -81,6 +81,13 @@ class BaseNode(object):
     # This property specifies if node can be created from list view.
     list_create = False
 
+    # If True, tells that this node is mainly used for listing other nodes and
+    # by default ``list_view`` method will be called instead of
+    # ``details_view``.
+    # This property should be set to True for such nodes like CategoryNode,
+    # TagNode, etc.
+    listing = False
+
     templates = {}
 
     def __init__(self, node=None):
@@ -245,24 +252,10 @@ class TagNode(BaseNode):
     name = _('Tag')
     model = Tag
 
-    def details_view(self, request, context_overrides=None):
-        children = couch.by_tag(key=self.node._id, include_docs=True, limit=10)
-        template = 'sboard/node_list.html'
+    listing = True
 
-        context = {
-            'view': self,
-            'node': self.node,
-            'children': children,
-        }
-        context.update(context_overrides or {})
-
-        if 'tag_form' not in context:
-            context['tag_form'] = TagForm(self.node)
-
-        if 'comment_form' not in context:
-            context['comment_form'] = CommentForm()
-
-        return render(request, template, context)
+    def get_node_list(self):
+        return couch.by_tag(key=self.node._id, include_docs=True, limit=10)
 
 
 class HistoryNode(BaseNode):
