@@ -81,6 +81,9 @@ class BaseNode(object):
     # This property specifies if node can be created from list view.
     list_create = False
 
+    # Tells if a node can be converted to this node.
+    convert_to = True
+
     # If True, tells that this node is mainly used for listing other nodes and
     # by default ``list_view`` method will be called instead of
     # ``details_view``.
@@ -108,6 +111,18 @@ class BaseNode(object):
                     args = (node.model.__name__.lower(),)
                     link = reverse('node_create', args=args)
                     yield link, node.name
+
+    @classmethod
+    def can_convert_to(cls, node):
+        return (cls.convert_to and node.__class__ is not cls.model and
+                cls is not BaseNode)
+
+    def get_convert_to_links(self):
+        for node in get_node_classes().values():
+            if node.can_convert_to(self.node):
+                args = (self.node._id, node.model.__name__.lower())
+                link = reverse('node_convert_to', args=args)
+                yield link, node.name
 
     def get_node_list(self):
         if self.node:
@@ -228,6 +243,29 @@ class BaseNode(object):
               'form': form,
           })
 
+    def convert_to_view(self, request):
+        if request.method == 'POST':
+            doc = dict(self.node._doc)
+            doc.pop('doc_type')
+            node = self.model.wrap(doc)
+            form = self.form(request.POST, instance=node)
+            if form.is_valid():
+                # TODO: create history entry
+                node = form.save(commit=False)
+                if self.node:
+                    self.node.before_child_save(form, node, create=False)
+                node.before_save(form, node, create=False)
+                node.save()
+                return redirect(node.permalink())
+        else:
+            initial = dict(self.node._doc)
+            initial['body'] = self.node.get_body()
+            form = self.form(instance=self.node, initial=initial)
+
+        return render(request, 'sboard/node_form.html', {
+              'form': form,
+          })
+
     def delete_view(self, request):
         raise NotImplementedError
 
@@ -256,6 +294,11 @@ class CommentNode(BaseNode):
     model = Comment
     form = CommentForm
 
+    @classmethod
+    def can_convert_to(cls, node):
+        return (super(CommentNode, cls).can_convert_to(node) and
+                node.has_parent())
+
     def create_view(self, request):
         if not self.node:
             raise Http404
@@ -278,8 +321,10 @@ class TagNode(BaseNode):
 class HistoryNode(BaseNode):
     name = _('History')
     model = History
+    convert_to = False
 
 
 class TagsChangeNode(BaseNode):
     name = _('Tags change')
     model = TagsChange
+    convert_to = False

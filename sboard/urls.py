@@ -13,6 +13,8 @@ node = patterns('sboard.views',
     url(r'^create/(?P<node_type>%s)/$' % slug, 'node', {'view': 'create'},
         name='node_create_child'),
     url(r'^update/$', 'node', {'view': 'update'}, name='node_update'),
+    url(r'^convert-to/(?P<node_type>%s)/$' % slug, 'node',
+        {'view': 'convert_to'}, name='node_convert_to'),
     url(r'^delete/$', 'node', {'view': 'delete'}, name='node_delete'),
     url(r'^tag/$', 'node', {'view': 'tag'}, name='node_tag'),
 )
