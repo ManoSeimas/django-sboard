@@ -14,6 +14,12 @@
 {% endblock %}
 
 {% block content %}
+  <div class="row">
+    <ul class="nav nav-pills pull-right">
+      <li><a href="{% url node_update node.get_id %}">{% trans "Edit" %}</a></li>
+    </ul>
+  </div>
+
   {% block node_body %}
   {{ node.render_body }}
   {% endblock %}

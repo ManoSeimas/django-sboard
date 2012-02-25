@@ -8,7 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from pyes import TermQuery, Search
 
 from . import es
-from .forms import NodeForm, TagForm, CommentForm
+from .forms import NodeForm, TagForm, TagNodeForm, CommentForm
 from .models import Node, Comment, Tag, TagsChange, History, DocTypeMap, couch
 
 
@@ -210,7 +210,24 @@ class BaseNode(object):
           })
 
     def update_view(self, request):
-        raise NotImplementedError
+        if request.method == 'POST':
+            form = self.form(request.POST, instance=self.node)
+            if form.is_valid():
+                # TODO: create history entry
+                node = form.save(commit=False)
+                node.set_parents(self.node)
+                if self.node:
+                    self.node.before_child_save(form, node, create=False)
+                node.before_save(form, node, create=False)
+                node.save()
+                return redirect(node.permalink())
+        else:
+            form = self.form(instance=self.node,
+                             initial={'body': self.node.get_body()})
+
+        return render(request, 'sboard/node_form.html', {
+              'form': form,
+          })
 
     def delete_view(self, request):
         raise NotImplementedError
@@ -251,6 +268,7 @@ class TagNode(BaseNode):
     slug = 'tags'
     name = _('Tag')
     model = Tag
+    form = TagNodeForm
 
     listing = True
 

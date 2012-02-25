@@ -2,7 +2,7 @@ from django import forms
 
 from couchdbkit.ext.django.forms import DocumentForm
 
-from .models import Node, Comment
+from .models import Node, Comment, Tag
 
 
 class NodeForm(DocumentForm):
@@ -27,6 +27,14 @@ class TagForm(forms.Form):
             raise forms.ValidationError(
                 "This node already tagged with '%s' tag." % tag)
         return tag
+
+
+class TagNodeForm(DocumentForm):
+    title = forms.CharField(required=True)
+
+    class Meta:
+        document = Tag
+        properties = ('title',)
 
 
 class CommentForm(NodeForm):
