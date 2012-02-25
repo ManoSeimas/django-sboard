@@ -215,7 +215,6 @@ class BaseNode(object):
             if form.is_valid():
                 # TODO: create history entry
                 node = form.save(commit=False)
-                node.set_parents(self.node)
                 if self.node:
                     self.node.before_child_save(form, node, create=False)
                 node.before_save(form, node, create=False)
