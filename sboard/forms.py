@@ -6,7 +6,8 @@ from .models import Node, Comment
 
 
 class NodeForm(DocumentForm):
-    body = forms.CharField()
+    title = forms.CharField(required=True)
+    body = forms.CharField(widget=forms.Textarea)
 
     class Meta:
         document = Node

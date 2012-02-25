@@ -10,7 +10,7 @@ from .models import Media
 from .nodes import get_node_view, get_node_classes
 
 
-def node(request, key=None, view='list'):
+def node(request, key=None, view='list', node_type=None):
     if key is not None:
         for node_class in get_node_classes().values():
             if node_class.slug == key:
@@ -18,7 +18,7 @@ def node(request, key=None, view='list'):
                 return node.list_view(request)
 
     try:
-        node = get_node_view(key)
+        node = get_node_view(key, node_type)
     except ResourceNotFound:
         raise Http404
 

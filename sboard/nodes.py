@@ -32,14 +32,22 @@ def get_node_classes():
     return _nodes_by_model
 
 
-def get_node_view(key=None):
+def get_node_view_class(slug):
+    """Return node view class by node slug."""
+    node_classes = get_node_classes()
+    return node_classes[slug]
+
+
+def get_node_view(key=None, node_type=None):
     """Returns node view class instance by node key."""
     if key is None:
         return BaseNode()
     else:
         node = couch.get(key)
-        node_classes = get_node_classes()
-        view_class = node_classes[node.doc_type.lower()]
+        if node_type is None:
+            view_class = get_node_view_class(node.doc_type.lower())
+        else:
+            view_class = get_node_view_class(node_type)
         return view_class(node)
 
 
@@ -75,7 +83,13 @@ class BaseNode(object):
         return None
 
     def get_node_list(self):
-        return couch.by_type(key=self.model.__name__, limit=50)
+        if self.node:
+            node_type = self.node.__class__.__name__
+            return couch.by_type(startkey=[node_type, 'Z'], endkey=[node_type],
+                                 descending=True, limit=50)
+        else:
+            node_type = self.node.__class__.__name__
+            return couch.all_nodes(descending=True, limit=50)
 
     def list_view(self, request, overrides=None):
         overrides = overrides or {}
@@ -149,6 +163,9 @@ class BaseNode(object):
                 node = form.save(commit=False)
                 node._id = node.get_new_id()
                 node.set_parents(self.node)
+                if self.node:
+                    self.node.before_child_save(form, node, create=True)
+                node.before_save(form, node, create=True)
                 node.save()
 
                 if self.node:

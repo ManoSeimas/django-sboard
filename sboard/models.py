@@ -106,6 +106,8 @@ class Node(schema.Document):
     # This property specifies node importance. This property is mainly used
     # when searching nodes. Nodes with bigger importance appears at the top of
     # search results.
+    #
+    # If importance is less than 5, then node will node appear in lists.
     importance = schema.IntegerProperty()
 
     _parent = None
@@ -188,6 +190,21 @@ class Node(schema.Document):
     def tag_url(self):
         return reverse('node_tag', args=[self._id])
 
+    def before_save(self, form, node, create=False):
+        """This method will be called before saving node.
+
+        You can override this method to some extra work with node before saving
+        it.
+        """
+        pass
+
+    def before_child_save(self, form, node, create=False):
+        """This method will be called before saving child node.
+
+        This method does same as before_save, except is called on parent node.
+        """
+        pass
+
 
 class Comment(Node):
     pass
@@ -234,6 +251,10 @@ class Tag(Node):
             return cls.create(tag)
         else:
             return self
+
+    def before_child_save(self, form, node, create=False):
+        if create:
+            node.tags = [self._id]
 
 
 class TagsChange(History):
