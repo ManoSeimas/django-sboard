@@ -42,7 +42,11 @@ def get_node_view_class(slug):
 def get_node_view(key=None, node_type=None):
     """Returns node view class instance by node key."""
     if key is None:
-        return BaseNode()
+        if node_type is None:
+            view_class = BaseNode
+        else:
+            view_class = get_node_view_class(node_type)
+        return view_class()
     else:
         node = couch.get(key)
         if node_type is None:
