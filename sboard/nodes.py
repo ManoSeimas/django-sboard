@@ -179,7 +179,8 @@ class BaseNode(object):
         # TODO: a hi-tech algorithm needed here, that can take all
         # comment tree, two levels deep and display this tree in one
         # cycle.
-        children = couch.children(key=self.node._id,
+        comments = couch.comments(startkey=[self.node._id, 'Z'],
+                                  endkey=[self.node._id], descending=True,
                                   include_docs=True, limit=10)
 
         overrides = overrides or {}
@@ -189,7 +190,7 @@ class BaseNode(object):
         context = {
             'view': self,
             'node': self.node,
-            'children': children,
+            'comments': comments,
         }
         context.update(overrides)
 
@@ -285,6 +286,29 @@ class BaseNode(object):
             return self.details_view(request, {
                 'tag_form': form,
             })
+
+    def comment_view(self, request):
+        if request.method != 'POST':
+            raise Http404
+
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            self.form_save(form, create=True)
+            return redirect(self.node.permalink())
+        else:
+            return self.details_view(request, {
+                'comment_form': form,
+            })
+
+    def form_save(self, form, create):
+        node = form.save(commit=False)
+        node._id = node.get_new_id()
+        node.set_parents(self.node)
+        if self.node:
+            self.node.before_child_save(form, node, create=True)
+        node.before_save(form, node, create=True)
+        node.save()
+        return node
 
 
 class CommentNode(BaseNode):

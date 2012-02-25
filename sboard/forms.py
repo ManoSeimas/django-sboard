@@ -37,7 +37,9 @@ class TagNodeForm(DocumentForm):
         properties = ('title',)
 
 
-class CommentForm(NodeForm):
+class CommentForm(DocumentForm):
+    body = forms.CharField(required=True, widget=forms.Textarea)
+
     class Meta:
         document = Comment
         properties = ('body',)

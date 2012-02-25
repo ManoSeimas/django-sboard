@@ -17,6 +17,7 @@ node = patterns('sboard.views',
         {'view': 'convert_to'}, name='node_convert_to'),
     url(r'^delete/$', 'node', {'view': 'delete'}, name='node_delete'),
     url(r'^tag/$', 'node', {'view': 'tag'}, name='node_tag'),
+    url(r'^comment/$', 'node', {'view': 'comment'}, name='node_comment'),
 )
 
 node += get_node_urls()
