@@ -206,14 +206,7 @@ class BaseNode(object):
         if request.method == 'POST':
             form = self.form(request.POST)
             if form.is_valid():
-                node = form.save(commit=False)
-                node._id = node.get_new_id()
-                node.set_parents(self.node)
-                if self.node:
-                    self.node.before_child_save(form, node, create=True)
-                node.before_save(form, node, create=True)
-                node.save()
-
+                node = self.form_save(form, create=True)
                 if self.node:
                     return redirect(self.node.permalink())
                 else:
@@ -229,12 +222,7 @@ class BaseNode(object):
         if request.method == 'POST':
             form = self.form(request.POST, instance=self.node)
             if form.is_valid():
-                # TODO: create history entry
-                node = form.save(commit=False)
-                if self.node:
-                    self.node.before_child_save(form, node, create=False)
-                node.before_save(form, node, create=False)
-                node.save()
+                node = self.form_save(form, create=False)
                 return redirect(node.permalink())
         else:
             form = self.form(instance=self.node,
@@ -251,12 +239,7 @@ class BaseNode(object):
             node = self.model.wrap(doc)
             form = self.form(request.POST, instance=node)
             if form.is_valid():
-                # TODO: create history entry
-                node = form.save(commit=False)
-                if self.node:
-                    self.node.before_child_save(form, node, create=False)
-                node.before_save(form, node, create=False)
-                node.save()
+                node = self.form_save(form, create=False)
                 return redirect(node.permalink())
         else:
             initial = dict(self.node._doc)
@@ -302,11 +285,15 @@ class BaseNode(object):
 
     def form_save(self, form, create):
         node = form.save(commit=False)
-        node._id = node.get_new_id()
-        node.set_parents(self.node)
+        if create:
+            node._id = node.get_new_id()
+            node.set_parents(self.node)
+        else:
+            # TODO: create history entry
+            pass
         if self.node:
-            self.node.before_child_save(form, node, create=True)
-        node.before_save(form, node, create=True)
+            self.node.before_child_save(form, node, create=create)
+        node.before_save(form, node, create=create)
         node.save()
         return node
 
