@@ -1,7 +1,12 @@
 import unidecode
 import uuid
 
+from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
+from django.utils.functional import lazy
+
+
+reverse_lazy = lazy(reverse, str)
 
 
 def get_node_id(title=None, allow_uuid=True):
