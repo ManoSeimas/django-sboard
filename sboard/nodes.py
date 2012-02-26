@@ -139,6 +139,16 @@ class BaseNode(object):
             node_type = self.node.__class__.__name__
             return couch.all_nodes(descending=True, limit=50)
 
+    def list_actions(self):
+        actions = []
+        if self.node:
+            link = reverse('node_update', args=[self.node._id])
+            actions.append((link, _('Edit'), None))
+
+        actions.append((None, _('Create new entry'), self.get_create_links()))
+
+        return actions
+
     def list_view(self, request, overrides=None):
         overrides = overrides or {}
         get_node_list = overrides.pop('get_node_list', self.get_node_list)
@@ -149,6 +159,7 @@ class BaseNode(object):
             'view': self,
             'node': self.node,
             'children': get_node_list(),
+            'actions': self.list_actions(),
         }
         context.update(overrides or {})
         return render(request, template, context)
@@ -181,6 +192,16 @@ class BaseNode(object):
         context.update(overrides or {})
         return render(request, template, context)
 
+    def details_actions(self):
+        actions = []
+        if self.node:
+            link = reverse('node_update', args=[self.node._id])
+            actions.append((link, _('Edit'), None))
+
+        actions.append((None, _('Convert to'), self.get_convert_to_links()))
+
+        return actions
+
     def details_view(self, request, overrides=None):
         # TODO: a hi-tech algorithm needed here, that can take all
         # comment tree, two levels deep and display this tree in one
@@ -197,6 +218,7 @@ class BaseNode(object):
             'view': self,
             'node': self.node,
             'comments': comments,
+            'actions': self.details_actions(),
         }
         context.update(overrides)
 

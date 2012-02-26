@@ -18,20 +18,7 @@
 {% block content %}
   <div class="row">
     <ul class="nav nav-pills pull-right">
-      {% if node %}
-      <li><a href="{% url node_update node.get_id %}">{% trans "Edit" %}</a></li>
-      {% endif %}
-      <li class="dropdown">
-        <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-          {% trans "Create new entry" %}
-          <b class="caret"></b>
-        </a>
-        <ul class="dropdown-menu">
-          {% for link, label in view.get_create_links %}
-          <li><a href="{{ link }}">{{ label }}</a></li>
-          {% endfor %}
-        </ul>
-      </li>
+      {% include "sboard/actions.html" %}
     </ul>
   </div>
 

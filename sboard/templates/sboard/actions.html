@@ -1,0 +1,17 @@
+{% for link, label, subactions in actions %}
+{% if subactions %}
+<li class="dropdown">
+  <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+    {{ label }}
+    <b class="caret"></b>
+  </a>
+  <ul class="dropdown-menu">
+    {% for link, label in subactions %}
+    <li><a href="{{ link }}">{{ label }}</a></li>
+    {% endfor %}
+  </ul>
+</li>
+{% else %}
+<li><a href="{{ link }}">{{ label }}</a></li>
+{% endif %}
+{% endfor %}
