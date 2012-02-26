@@ -79,7 +79,7 @@ class BaseNode(object):
     form = NodeForm
 
     # This property specifies if node can be created from list view.
-    list_create = False
+    list_create = True
 
     # Tells if a node can be converted to this node.
     convert_to = True
@@ -100,9 +100,15 @@ class BaseNode(object):
     def get_urls(cls):
         return None
 
+    @classmethod
+    def can_create_in(cls, node):
+        """Returns True if this node can be created in specified ``node`` as
+        child."""
+        return (cls.list_create and cls is not BaseNode)
+
     def get_create_links(self):
         for node in get_node_classes().values():
-            if node.list_create:
+            if node.can_create_in(self.node):
                 if self.node:
                     args = (self.node._id, node.model.__name__.lower())
                     link = reverse('node_create_child', args=args)
@@ -311,6 +317,11 @@ class CommentNode(BaseNode):
     form = CommentForm
 
     @classmethod
+    def can_create_in(cls, node):
+        return (super(CommentNode, cls).can_create_in(node) and
+                node and node.has_parent())
+
+    @classmethod
     def can_convert_to(cls, node):
         return (super(CommentNode, cls).can_convert_to(node) and
                 node.has_parent())
@@ -327,6 +338,7 @@ class TagNode(BaseNode):
     name = _('Tag')
     model = Tag
     form = TagNodeForm
+    list_create = False
 
     listing = True
 
@@ -338,9 +350,11 @@ class HistoryNode(BaseNode):
     name = _('History')
     model = History
     convert_to = False
+    list_create = False
 
 
 class TagsChangeNode(BaseNode):
     name = _('Tags change')
     model = TagsChange
     convert_to = False
+    list_create = False

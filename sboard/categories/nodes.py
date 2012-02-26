@@ -14,7 +14,6 @@ class CategoryNode(BaseNode):
     form = CategoryForm
 
     listing = True
-    list_create = True
 
     def get_node_list(self):
         return couch.children(key=self.node._id, include_docs=True, limit=10)

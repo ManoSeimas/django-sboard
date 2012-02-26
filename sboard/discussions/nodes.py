@@ -9,5 +9,3 @@ class DiscussionNode(BaseNode):
     slug = 'discussions'
     name = _('Discussion')
     model = Discussion
-
-    list_create = True
