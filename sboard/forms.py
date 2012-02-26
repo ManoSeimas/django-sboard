@@ -2,16 +2,18 @@ from django import forms
 
 from couchdbkit.ext.django.forms import DocumentForm
 
+from .fields import NodeField
 from .models import Node, Comment, Tag
 
 
 class NodeForm(DocumentForm):
-    title = forms.CharField(required=True)
+    title = forms.CharField()
+    parent = NodeField(required=False)
     body = forms.CharField(widget=forms.Textarea)
 
     class Meta:
         document = Node
-        properties = ('title', 'body')
+        properties = ('title', 'parent', 'body')
 
 
 class TagForm(forms.Form):

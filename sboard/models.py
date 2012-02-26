@@ -80,6 +80,13 @@ class SboardCouchViews(object):
 couch = SboardCouchViews()
 
 
+class NodeProperty(schema.StringProperty):
+    def validate(self, value, required=True):
+        if isinstance(value, Node):
+            value = value._id
+        return super(NodeProperty, self).validate(value, required)
+
+
 class Node(schema.Document):
     # Author, who initiali created this node.
     author = schema.StringProperty()
@@ -89,6 +96,9 @@ class Node(schema.Document):
 
     # Node creation datetime.
     created = schema.DateTimeProperty(default=datetime.datetime.utcnow)
+
+    # Node parent.
+    parent = NodeProperty()
 
     # List of all node ancestors.
     parents = schema.ListProperty()

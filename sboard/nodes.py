@@ -202,9 +202,14 @@ class BaseNode(object):
 
         return render(request, template, context)
 
+    def get_form(self, *args, **kwargs):
+        if self.node:
+            kwargs['initial'] = {'parent': self.node._id}
+        return self.form(*args, **kwargs)
+
     def create_view(self, request):
         if request.method == 'POST':
-            form = self.form(request.POST)
+            form = self.get_form(request.POST)
             if form.is_valid():
                 node = self.form_save(form, create=True)
                 if self.node:
@@ -212,7 +217,7 @@ class BaseNode(object):
                 else:
                     return redirect(node.permalink())
         else:
-            form = self.form()
+            form = self.get_form()
 
         return render(request, 'sboard/node_form.html', {
               'form': form,
@@ -287,10 +292,10 @@ class BaseNode(object):
         node = form.save(commit=False)
         if create:
             node._id = node.get_new_id()
-            node.set_parents(self.node)
         else:
             # TODO: create history entry
             pass
+        node.set_parents(form.cleaned_data.get('parent'))
         if self.node:
             self.node.before_child_save(form, node, create=create)
         node.before_save(form, node, create=create)
