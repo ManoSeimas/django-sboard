@@ -69,8 +69,8 @@
     <hr />
     {% for comment in comments %}
     <div class="list-entry">
-      [{{ comment.created|date:"SHORT_DATE_FORMAT" }}]
-      <a href="{{ comment.permalink }}">{{ comment.get_body }}</a>
+      [<a href="{{ comment.permalink }}">{{ comment.created|date:"SHORT_DATE_FORMAT" }}</a>]
+      {{ comment.render_body }}
       <hr />
     </div>
     {% endfor %}
