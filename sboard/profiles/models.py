@@ -1,4 +1,6 @@
+from django.contrib.auth.models import User
 from django.db import models
+from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy as _
 
 KARMA_LEVEL_1 = 1
@@ -20,7 +22,7 @@ class ProfileManager(models.Manager):
 
 
 class Profile(models.Model):
-    user = models.OneToOneField('auth.User', verbose_name=_('User'))
+    user = models.OneToOneField(User, verbose_name=_('User'))
     karma = models.IntegerField(_('Karma'), default=0, choices=KARMA_CHOICES)
     name = models.CharField(_('Name'), max_length=255)
 
@@ -32,3 +34,10 @@ class Profile(models.Model):
 
     def __unicode__(self):
         return self.name
+
+
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
+post_save.connect(create_user_profile, sender=User)
