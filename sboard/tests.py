@@ -8,6 +8,7 @@ from couchdbkit.exceptions import ResourceNotFound
 from couchdbkit.ext.django import loading
 
 from .models import couch, Node
+from .profiles.models import Profile
 
 
 class NodesTestsMixin(object):
@@ -123,6 +124,11 @@ class NodesTestsMixin(object):
         node.permissions = [list(p) for p in permissions]
         node.save()
 
+    def _set_karma(self, user, karma):
+        p = Profile.objects.get(user__username=user)
+        p.karma = karma
+        p.save()
+
     def setUp(self):
         self._settings = {}
         self.addCleanup(self._restore_set_settings)
@@ -147,9 +153,13 @@ class NodesTests(NodesTestsMixin, TestCase):
     """Big and fat functional test for nodes."""
 
     def testNodes(self):
+        # Anonymous user: create root category
+        response = self._create('category', title='C1')
+        self.assertEqual(response.status_code, 403)
+
         self._login_superuser()
 
-        # Create root node
+        # Create root category with superuser rights
         response = self._create('category', title='C1')
         self.assertRedirects(response, reverse('node_details', args=['c1']))
 
@@ -161,8 +171,16 @@ class NodesTests(NodesTestsMixin, TestCase):
 
         # Set permissions to allow create comments to all authenticated users
         self._set_perm('c1', ('create', 'all', 'authenticated', 'comment', 0))
+        response = self._create('comment', parent='c1', _f=('body',))
+        self.assertRedirects(response, reverse('node_details', args=['c1']))
 
-        # Try to create child node again
+        # Require higher karma to create comments
+        self._set_perm('c1', ('create', 'all', 'authenticated', 'comment', 10))
+        response = self._create('comment', parent='c1', _f=('body',))
+        self.assertEqual(response.status_code, 403)
+
+        # Give user needed karma to be able to create comment
+        self._set_karma('u1', 10)
         response = self._create('comment', parent='c1', _f=('body',))
         self.assertRedirects(response, reverse('node_details', args=['c1']))
 
