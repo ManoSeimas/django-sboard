@@ -19,6 +19,12 @@ class NodesTestsMixin(object):
 
     """
 
+    _f_title = 'Consectetuer adipiscing elit'
+
+    _f_body = ('Lorem ipsum dolor sit amet, consectetuer adipiscing elit, '
+               'sed diam nonummy nibh euismod tincidunt ut laoreet dolore '
+               'magna aliquam erat volutpat.')
+
     def _set_setting(self, key, val):
         self._settings[key] = getattr(settings, key)
         setattr(settings, key, val)
@@ -69,11 +75,53 @@ class NodesTestsMixin(object):
 
     def _login_superuser(self):
         self.client.logout()
-        self.client.login(username='superuser', password='supersecret')
+        assert self.client.login(username='superuser', password='supersecret')
+        return User.objects.get(username='superuser')
 
-    def _login_user(self):
+    def _login_user1(self):
         self.client.logout()
-        self.client.login(username='simpleuser', password='secret')
+        assert self.client.login(username='u1', password='secret')
+        return User.objects.get(username='u1')
+
+    def _login_user2(self):
+        self.client.logout()
+        assert self.client.login(username='u2', password='secret')
+        return User.objects.get(username='u2')
+
+    def _login_user3(self):
+        self.client.logout()
+        assert self.client.login(username='u3', password='secret')
+        return User.objects.get(username='u3')
+
+    def _logout(self):
+        self.client.logout()
+
+    def _create(self, node, **kwargs):
+        fields = kwargs.pop('_f', ())
+        for f in fields:
+            kwargs[f] = getattr(self, '_f_%s' % f)
+
+        if 'parent' in kwargs:
+            url = reverse('node_create_child', args=[kwargs['parent'], node])
+        else:
+            url = reverse('node_create', args=[node])
+
+        return self.client.post(url, kwargs)
+
+    def _set_perm(self, node, *permissions):
+        """Set node permissions.
+
+        Example::
+
+            self._set_perm('c1',
+                ('create', 'owner', None, 'comment', 0),
+                ('create', 'all', 'authenticated', 'comment', 0),
+            )
+
+        """
+        node = couch.get(node)
+        node.permissions = [list(p) for p in permissions]
+        node.save()
 
     def setUp(self):
         self._settings = {}
@@ -89,9 +137,10 @@ class NodesTestsMixin(object):
         User.objects.create_superuser('superuser', 'superuser@example.com',
                                       'supersecret')
 
-        # Create user.
-        User.objects.create_user('simpleuser', 'simpleuser@example.com',
-                                 'secret')
+        # Create users.
+        User.objects.create_user('u1', 'u1@example.com', 'secret')
+        User.objects.create_user('u2', 'u2@example.com', 'secret')
+        User.objects.create_user('u3', 'u3@example.com', 'secret')
 
 
 class NodesTests(NodesTestsMixin, TestCase):
@@ -101,34 +150,18 @@ class NodesTests(NodesTestsMixin, TestCase):
         self._login_superuser()
 
         # Create root node
-        create_category_url = reverse('node_create', args=['category'])
-        response = self.client.post(create_category_url, {
-                'title': 'Main test category',
-                'parent': '',
-                'body': '',
-            })
-        main_url = reverse('node_details', args=['main-test-category'])
-        self.assertRedirects(response, main_url)
+        response = self._create('category', title='C1')
+        self.assertRedirects(response, reverse('node_details', args=['c1']))
 
-        self._login_user()
+        self._login_user1()
 
         # Create child node
-        create_comment_url = reverse('node_create_child',
-                args=['main-test-category', 'comment'])
-        response = self.client.post(create_comment_url, {
-                'body': 'comment body',
-            })
+        response = self._create('comment', parent='c1', _f=('body',))
         self.assertEqual(response.status_code, 403)
 
-        # Set permissions to allow create comments
-        node = couch.get('main-test-category')
-        node.permissions = [
-           ['create', 'all', None, 'comment', 0],
-        ]
-        node.save()
+        # Set permissions to allow create comments to all authenticated users
+        self._set_perm('c1', ('create', 'all', 'authenticated', 'comment', 0))
 
         # Try create child node again
-        response = self.client.post(create_comment_url, {
-                'body': 'comment body',
-            })
-        self.assertRedirects(response, main_url)
+        response = self._create('comment', parent='c1', _f=('body',))
+        self.assertRedirects(response, reverse('node_details', args=['c1']))
