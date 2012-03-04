@@ -10,6 +10,7 @@ from pyes import TermQuery, Search
 from . import es
 from .forms import NodeForm, TagForm, TagNodeForm, CommentForm
 from .models import Node, Comment, Tag, TagsChange, History, DocTypeMap, couch
+from .permissions import Permissions
 
 
 _nodes_by_model = None
@@ -91,6 +92,11 @@ class BaseNode(object):
     # TagNode, etc.
     listing = False
 
+    permissions = []
+
+    # Used to cache permissions object.
+    _permissions = None
+
     templates = {}
 
     def __init__(self, node=None):
@@ -100,35 +106,58 @@ class BaseNode(object):
     def get_urls(cls):
         return None
 
-    @classmethod
-    def can_create_in(cls, node):
-        """Returns True if this node can be created in specified ``node`` as
-        child."""
-        return (cls.list_create and cls is not BaseNode)
+    def get_permissions(self):
+        if self._permissions is not None:
+            return self._permissions
 
-    def get_create_links(self):
+        permissions = Permissions()
+
+        # TODO: root node permissions should be also taken
+
+        if self.node:
+            for ancestor in self.node.get_ancestors():
+                permissions.update(ancestor.permissions)
+            permissions.update(self.node.permissions)
+
+        self._permissions = permissions
+        return self._permissions
+
+    @classmethod
+    def has_child_permission(cls, node, action):
+        return True
+
+    def can(self, request, action, view):
+        if view is None:
+            view = BaseNode
+
+        if not view.has_child_permission(self.node, action):
+            return False
+
+        permissions = self.get_permissions()
+        return permissions.can(request, action, view.model.__name__.lower())
+
+    def get_create_links(self, request):
+        links = []
         for node in get_node_classes().values():
-            if node.can_create_in(self.node):
+            if self.can(request, 'create', node):
                 if self.node:
                     args = (self.node._id, node.model.__name__.lower())
                     link = reverse('node_create_child', args=args)
-                    yield link, node.name
+                    links.append((link, node.name))
                 else:
                     args = (node.model.__name__.lower(),)
                     link = reverse('node_create', args=args)
-                    yield link, node.name
+                    links.append((link, node.name))
+        return links
 
-    @classmethod
-    def can_convert_to(cls, node):
-        return (cls.convert_to and node.__class__ is not cls.model and
-                cls is not BaseNode)
-
-    def get_convert_to_links(self):
+    def get_convert_to_links(self, request):
+        links = []
         for node in get_node_classes().values():
-            if node.can_convert_to(self.node):
+            if self.can(request, 'create', node):
                 args = (self.node._id, node.model.__name__.lower())
                 link = reverse('node_convert_to', args=args)
-                yield link, node.name
+                links.append((link, node.name))
+        return links
 
     def get_node_list(self):
         if self.node:
@@ -139,13 +168,15 @@ class BaseNode(object):
             node_type = self.node.__class__.__name__
             return couch.all_nodes(descending=True, limit=50)
 
-    def list_actions(self):
+    def list_actions(self, request):
         actions = []
         if self.node:
             link = reverse('node_update', args=[self.node._id])
             actions.append((link, _('Edit'), None))
 
-        actions.append((None, _('Create new entry'), self.get_create_links()))
+        create_links = self.get_create_links(request)
+        if create_links:
+            actions.append((None, _('Create new entry'), create_links))
 
         return actions
 
@@ -159,7 +190,7 @@ class BaseNode(object):
             'view': self,
             'node': self.node,
             'children': get_node_list(),
-            'actions': self.list_actions(),
+            'actions': self.list_actions(request),
         }
         context.update(overrides or {})
         return render(request, template, context)
@@ -236,6 +267,9 @@ class BaseNode(object):
         return self.form(*args, **kwargs)
 
     def create_view(self, request):
+        if not self.can(request, 'create', self.__class__):
+            return render(request, '403.html', status=403)
+
         if request.method == 'POST':
             form = self.get_form(request.POST)
             if form.is_valid():
@@ -339,20 +373,16 @@ class CommentNode(BaseNode):
     form = CommentForm
 
     @classmethod
-    def can_create_in(cls, node):
-        return (super(CommentNode, cls).can_create_in(node) and
-                node and node.has_parent())
-
-    @classmethod
-    def can_convert_to(cls, node):
-        return (super(CommentNode, cls).can_convert_to(node) and
-                node.has_parent())
+    def has_child_permission(cls, node, action):
+        if action in ('create', 'convert'):
+            return node is not None
+        return True
 
     def create_view(self, request):
         if not self.node:
             raise Http404
         else:
-            return super(CommentNode, self).create(request)
+            return super(CommentNode, self).create_view(request)
 
 
 class TagNode(BaseNode):

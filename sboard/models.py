@@ -103,6 +103,7 @@ class Node(schema.Document):
     parent = NodeProperty()
 
     # List of all node ancestors.
+    # TODO: rename ``parents`` to ``ancestors``
     parents = schema.ListProperty()
 
     # Node tags. Each item in this list is reference to a node.
@@ -121,6 +122,8 @@ class Node(schema.Document):
     #
     # If importance is less than 5, then node will node appear in lists.
     importance = schema.IntegerProperty()
+
+    permissions = schema.ListProperty()
 
     _parent = None
 
@@ -153,15 +156,22 @@ class Node(schema.Document):
         return get_node_id(self.title)
 
     def has_parent(self):
+        # TODO: this method is not needed any more in favor of self.parent
         return self.parents and len(self.parents) > 0
 
     def get_parent(self):
         if self._parent is None:
-            if self.has_parent:
+            if self.parent:
                 # TODO: returned instance must be mapped to model described in
                 # ``doc_type``.
                 self._parent = self.get(self.parents[-1])
         return self._parent
+
+    def get_ancestors(self):
+        if self.parent:
+            return couch.ancestors(key=self._id)
+        else:
+            return []
 
     def set_parents(self, parent_node):
         """Sets ``parents`` property by given parent node."""
