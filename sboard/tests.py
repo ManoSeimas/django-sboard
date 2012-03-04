@@ -162,6 +162,17 @@ class NodesTests(NodesTestsMixin, TestCase):
         # Set permissions to allow create comments to all authenticated users
         self._set_perm('c1', ('create', 'all', 'authenticated', 'comment', 0))
 
-        # Try create child node again
+        # Try to create child node again
+        response = self._create('comment', parent='c1', _f=('body',))
+        self.assertRedirects(response, reverse('node_details', args=['c1']))
+
+        self._logout()
+
+        # Try to create child node with anonymous user
+        response = self._create('comment', parent='c1', _f=('body',))
+        self.assertEqual(response.status_code, 403)
+
+        # Allow anonymous users to create comments
+        self._set_perm('c1', ('create', 'all', None, 'comment', 0))
         response = self._create('comment', parent='c1', _f=('body',))
         self.assertRedirects(response, reverse('node_details', args=['c1']))
