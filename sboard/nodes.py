@@ -223,13 +223,14 @@ class BaseNode(object):
         context.update(overrides or {})
         return render(request, template, context)
 
-    def details_actions(self):
+    def details_actions(self, request):
         actions = []
         if self.node:
             link = reverse('node_update', args=[self.node._id])
             actions.append((link, _('Edit'), None))
 
-        actions.append((None, _('Convert to'), self.get_convert_to_links()))
+        actions.append((None, _('Convert to'),
+                       self.get_convert_to_links(request)))
 
         return actions
 
@@ -249,7 +250,7 @@ class BaseNode(object):
             'view': self,
             'node': self.node,
             'comments': comments,
-            'actions': self.details_actions(),
+            'actions': self.details_actions(request),
         }
         context.update(overrides)
 
