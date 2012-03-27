@@ -117,6 +117,7 @@ class ESManagement(object):
                 return False
             else:
                 time.sleep(1)
+                seconds += 1
 
     def start(self):
         return subprocess.Popen([self.elasticsearch, '-p', self.pid_file],
