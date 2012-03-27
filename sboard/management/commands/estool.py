@@ -13,6 +13,8 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--path', action='store', dest='path',
                     help='ElasticSearch root directory.'),
+        make_option('--wait', type=int, dest='wait', default=30,
+                    help='Seconds to wait for ElasticSearch to start.'),
     )
 
     def handle(self, *args, **options):
@@ -27,7 +29,7 @@ class Command(BaseCommand):
         if action == 'install':
             print("Installing CouchDB river index...")
             esm.start()
-            if esm.wait():
+            if esm.wait(options['wait']):
                 if esm.is_installed():
                     print(" ... already installed.")
                 else:
@@ -50,7 +52,7 @@ class Command(BaseCommand):
                 esm.stop()
                 esm.start()
                 print(" ... waiting while server starts...")
-                if esm.wait():
+                if esm.wait(options['wait']):
                     print(" ... done.")
                 else:
                     esm.stop()
