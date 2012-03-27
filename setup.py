@@ -6,4 +6,5 @@ setup(name='django-sboard',
       install_requires=[
           'anytorst',
           'unidecode',
+          'psutil',
       ])
