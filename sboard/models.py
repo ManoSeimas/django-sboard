@@ -70,6 +70,7 @@ class SboardCouchViews(object):
         return cls.wrap(data)
 
     def get(self, docid, rev=None):
+        assert docid, "``docid`` can't be empty"
         db = Node.get_db()
         return db.get(docid, rev=rev, wrapper=self.wrap)
 
