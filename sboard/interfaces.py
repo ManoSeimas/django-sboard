@@ -16,6 +16,9 @@ class INode(Interface):
     Optionally all nodes can have a parent node.
     """
 
+class IRoot(INode):
+    """Special node where all settings are stored."""
+
 
 class IComment(INode):
     """Comment node is a spacial node object that acts as a comment for

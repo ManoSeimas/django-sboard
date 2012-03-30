@@ -16,11 +16,12 @@ from couchdbkit.exceptions import ResourceNotFound
 from .factory import INodeFactory
 from .interfaces import INodeView
 from .models import Media, couch
+from .models import getRootNode
 
 
 def node(request, key=None, action='', name=''):
     if key is None:
-        node = None
+        node = getRootNode()
     else:
         try:
             node = couch.get(key)

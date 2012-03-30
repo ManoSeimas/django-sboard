@@ -21,6 +21,7 @@ from .factory import provideNode
 from .interfaces import IComment
 from .interfaces import IHistory
 from .interfaces import INode
+from .interfaces import IRoot
 from .interfaces import ITag
 from .interfaces import ITagsChange
 from .utils import get_node_id
@@ -268,7 +269,29 @@ class Node(schema.Document):
             cls._db = db
         return db
 
+
 provideNode(Node, "node")
+
+
+class Root(Node):
+    implements(IRoot)
+
+provideNode(Root, "root")
+
+
+_root_node = None
+
+def getRootNode():
+    global _root_node
+    if _root_node is None:
+        key = '~'
+        try:
+            _root_node = couch.get(key)
+        except ResourceNotFound:
+            _root_node = Root()
+            _root_node._id = key
+            _root_node.save()
+    return _root_node
 
 
 class Comment(Node):

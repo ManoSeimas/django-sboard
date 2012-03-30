@@ -3,7 +3,7 @@ from django.conf.urls.defaults import patterns, url, include
 # TODO: fix it
 # from .nodes import get_node_urls
 
-slug = r'[a-z0-9-]+'
+slug = r'[a-z0-9~-]+'
 
 node = patterns('sboard.views',
     url(r'^$', 'node', name='node_details'),
