@@ -5,31 +5,42 @@ try:
 except ImportError:
     import Image
 
+from zope.component import getAdapter
+from zope.component import getMultiAdapter
+from zope.component import getUtility
+
 from django.http import HttpResponse, Http404
 
 from couchdbkit.exceptions import ResourceNotFound
 
-from .models import Media
-from .nodes import get_node_view
+from .factory import INodeFactory
+from .interfaces import INodeView
+from .models import Media, couch
 
 
-def node(request, key=None, view=None, node_type=None):
-    try:
-        node = get_node_view(key, node_type)
-    except ResourceNotFound:
-        raise Http404
+# TODO: move this to autodiscover function
+# -----------------
+from . import nodes
+from .categories import nodes
+# -----------------
 
-    if view is None:
-        if node.listing:
-            view = 'list'
-        else:
-            view = 'details'
-
-    _view = getattr(node, '%s_view' % view, None)
-    if _view is None:
-        raise Http404
+def node(request, key=None, action='', name=''):
+    if key is None:
+        node = None
     else:
-        return _view(request)
+        try:
+            node = couch.get(key)
+        except ResourceNotFound:
+            raise Http404
+
+    if name:
+        factory = getUtility(INodeFactory, name)
+        view = getMultiAdapter((node, factory), INodeView, action)
+    else:
+        view = getAdapter(node, INodeView, action)
+
+    view.request = request
+    return view.render()
 
 
 def render_image(request, slug, ext):

@@ -5,6 +5,7 @@ setup(name='django-sboard',
       packages=find_packages(),
       install_requires=[
           'anytorst',
-          'unidecode',
           'psutil',
+          'unidecode',
+          'zope.component',
       ])

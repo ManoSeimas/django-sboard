@@ -1,6 +1,8 @@
 import datetime
 import functools
 
+from zope.interface import implements
+
 from django.contrib.markup.templatetags import markup
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
@@ -13,6 +15,14 @@ from couchdbkit.ext.django.loading import couchdbkit_handler
 from docutils.parsers.rst import directives
 from docutils.parsers.rst.directives.images import Image
 
+from .factory import getNodeClass
+from .factory import getNodeFactories
+from .factory import provideNode
+from .interfaces import IComment
+from .interfaces import IHistory
+from .interfaces import INode
+from .interfaces import ITag
+from .interfaces import ITagsChange
 from .utils import get_node_id
 
 
@@ -25,15 +35,14 @@ class DocTypeMap(dict):
     def __init__(self, *args, **kwargs):
         super(DocTypeMap, self).__init__(*args, **kwargs)
 
-        from .nodes import get_node_classes
-        for node_class in get_node_classes().values():
-            doc_type = node_class.model.__name__
-            if doc_type not in self:
-                self[doc_type] = node_class.model
+        self.default = getNodeClass("node")
+        for name, factory in getNodeFactories():
+            if name not in self:
+                self[name] = factory.node_class
 
 
     def get(self, key, default=None):
-        return super(DocTypeMap, self).get(key, default) or Node
+        return super(DocTypeMap, self).get(key, default) or self.default
 
 
 class SboardCouchViews(object):
@@ -66,6 +75,7 @@ class SboardCouchViews(object):
                                  classes=self.get_doc_type_map(), **self.kwargs)
 
     def wrap(self, data):
+        # TODO: change doc_type to node_type
         cls = self.get_doc_type_map().get(data['doc_type'])
         return cls.wrap(data)
 
@@ -91,6 +101,8 @@ class NodeProperty(schema.StringProperty):
 
 
 class Node(schema.Document):
+    implements(INode)
+
     # Author, who initiali created this node.
     author = schema.StringProperty()
 
@@ -256,12 +268,18 @@ class Node(schema.Document):
             cls._db = db
         return db
 
+provideNode(Node, "node")
+
 
 class Comment(Node):
-    pass
+    implements(IComment)
+
+provideNode(Comment, "comment")
 
 
 class History(Node):
+    implements(IHistory)
+
     change_choices = tuple()
 
     # Full node dict, that was some how changed.
@@ -286,8 +304,12 @@ class History(Node):
     def render_body(self):
         return _('Node was modified.')
 
+provideNode(History, "history")
+
 
 class Tag(Node):
+    implements(ITag)
+
     @classmethod
     def create(cls, tag):
         self = cls()
@@ -307,9 +329,15 @@ class Tag(Node):
         if create:
             node.tags = [self._id]
 
+provideNode(Tag, "tag")
+
 
 class TagsChange(History):
+    implements(ITagsChange)
+
     change_choices = ('tags-change',)
+
+provideNode(TagsChange, "tags-change")
 
 
 class Media(schema.Document):

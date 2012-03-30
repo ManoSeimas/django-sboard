@@ -1,19 +1,21 @@
-from django.utils.translation import ugettext_lazy as _
+from zope.component import adapts
+from zope.component import provideAdapter
 
 from sboard.models import couch
-from sboard.nodes import BaseNode
+from sboard.nodes import CreateView
 
 from .forms import CategoryForm
-from .models import Category
+from .interfaces import ICategory
 
 
-class CategoryNode(BaseNode):
-    slug = 'categories'
-    name = _('Category')
-    model = Category
+class CategoryCreateView(CreateView):
+    adapts(object, ICategory)
+
     form = CategoryForm
 
     listing = True
 
     def get_node_list(self):
         return couch.children(key=self.node._id, include_docs=True, limit=10)
+
+provideAdapter(CategoryCreateView, name="create")

@@ -1,14 +1,24 @@
-from django.conf import settings
+from zope.component import adapts
+from zope.component import provideAdapter
+from zope.interface import implements
+
 from django.core.urlresolvers import reverse
 from django.http import Http404
 from django.shortcuts import render, redirect
-from django.utils.importlib import import_module
 from django.utils.translation import ugettext_lazy as _
 
 from pyes import TermQuery, Search
 
 from . import es
+from .factory import getNodeFactories
+from .factory import getNodeFactory
 from .forms import NodeForm, TagForm, TagNodeForm, CommentForm
+from .interfaces import IComment
+from .interfaces import IHistory
+from .interfaces import INode
+from .interfaces import INodeView
+from .interfaces import ITag
+from .interfaces import ITagsChange
 from .models import Node, Comment, Tag, TagsChange, History, DocTypeMap, couch
 from .permissions import Permissions
 
@@ -16,62 +26,16 @@ from .permissions import Permissions
 _nodes_by_model = None
 
 
-def get_node_classes():
-    global _nodes_by_model
-    if _nodes_by_model is None:
-        _nodes_by_model = {
-            'tag': TagNode,
-            'node': BaseNode,
-            'comment': CommentNode,
-            'history': HistoryNode,
-            'tagschange': TagsChangeNode,
-        }
-        for item in settings.SBOARD_NODES:
-            module_name, class_name = item.rsplit('.', 1)
-            module = import_module(module_name)
-            node_class = getattr(module, class_name)
-            _nodes_by_model[node_class.model.__name__.lower()] = node_class
-    return _nodes_by_model
 
-
-def get_node_view_class(slug):
-    """Return node view class by node slug."""
-    node_classes = get_node_classes()
-    return node_classes[slug]
-
-
-def get_node_view(key=None, node_type=None):
-    """Returns node view class instance by node key."""
-    if key is None:
-        if node_type is None:
-            view_class = BaseNode
-        else:
-            view_class = get_node_view_class(node_type)
-        return view_class()
-    else:
-        node = couch.get(key)
-        if node_type is None:
-            view_class = get_node_view_class(node.doc_type.lower())
-        else:
-            view_class = get_node_view_class(node_type)
-        return view_class(node)
-
-
-def get_node_urls():
-    urls = []
-    for node_class in get_node_classes().values():
-        _urls = node_class.get_urls()
-        if _urls is not None:
-            urls += _urls
-    return urls
-
-
-class BaseNode(object):
+class NodeView(object):
     """Base node view class.
 
     Each node must be associated with node view class, where goes all request
     handling logic and response preparation.
     """
+
+    implements(INodeView)
+    adapts(INode)
 
     slug = None
     name = _('Node')
@@ -99,8 +63,11 @@ class BaseNode(object):
 
     templates = {}
 
-    def __init__(self, node=None):
-        self.node = node
+    def __init__(self, node_or_factory=None):
+        if isinstance(node_or_factory, Node):
+            self.node = node_or_factory
+        else:
+            self.node = None
 
     @classmethod
     def get_urls(cls):
@@ -126,37 +93,37 @@ class BaseNode(object):
     def has_child_permission(cls, node, action):
         return True
 
-    def can(self, request, action, view):
-        if view is None:
-            view = BaseNode
+    def can(self, action, factory):
+        if factory is None:
+            factory = getNodeFactory("node")
 
-        if not view.has_child_permission(self.node, action):
+        if not factory.has_child_permission(self.node, action):
             return False
 
         permissions = self.get_permissions()
-        return permissions.can(request, action, view.model.__name__.lower())
+        return permissions.can(self.request, action, factory.name)
 
     def get_create_links(self, request):
         links = []
-        for node in get_node_classes().values():
-            if self.can(request, 'create', node):
+        for name, factory in getNodeFactories():
+            if self.can(request, 'create', factory):
                 if self.node:
-                    args = (self.node._id, node.model.__name__.lower())
+                    args = (self.node._id, name)
                     link = reverse('node_create_child', args=args)
-                    links.append((link, node.name))
+                    links.append((link, name))
                 else:
-                    args = (node.model.__name__.lower(),)
+                    args = (name,)
                     link = reverse('node_create', args=args)
-                    links.append((link, node.name))
+                    links.append((link, name))
         return links
 
-    def get_convert_to_links(self, request):
+    def get_convert_to_links(self):
         links = []
-        for node in get_node_classes().values():
-            if self.can(request, 'create', node):
-                args = (self.node._id, node.model.__name__.lower())
+        for name, factory in getNodeFactories():
+            if self.can('create', factory):
+                args = (self.node._id, name)
                 link = reverse('node_convert_to', args=args)
-                links.append((link, node.name))
+                links.append((link, name))
         return links
 
     def get_node_list(self):
@@ -168,19 +135,51 @@ class BaseNode(object):
             node_type = self.node.__class__.__name__
             return couch.all_nodes(descending=True, limit=50)
 
-    def list_actions(self, request):
+    def list_actions(self):
         actions = []
         if self.node:
             link = reverse('node_update', args=[self.node._id])
             actions.append((link, _('Edit'), None))
 
-        create_links = self.get_create_links(request)
+        create_links = self.get_create_links()
         if create_links:
             actions.append((None, _('Create new entry'), create_links))
 
         return actions
 
-    def list_view(self, request, overrides=None):
+    def details_actions(self):
+        actions = []
+        if self.node:
+            link = reverse('node_update', args=[self.node._id])
+            actions.append((link, _('Edit'), None))
+
+        actions.append((None, _('Convert to'),
+                       self.get_convert_to_links()))
+
+        return actions
+
+    def get_form(self, *args, **kwargs):
+        if self.node:
+            kwargs['initial'] = {'parent': self.node._id}
+        return self.form(*args, **kwargs)
+
+    def form_save(self, form, create):
+        node = form.save(commit=False)
+        if create:
+            node._id = node.get_new_id()
+        else:
+            # TODO: create history entry
+            pass
+        node.set_parents(form.cleaned_data.get('parent'))
+        if self.node:
+            self.node.before_child_save(form, node, create=create)
+        node.before_save(form, node, create=create)
+        node.save()
+        return node
+
+
+class ListView(NodeView):
+    def render(self, overrides=None):
         overrides = overrides or {}
         get_node_list = overrides.pop('get_node_list', self.get_node_list)
         template = self.templates.get('list', 'sboard/node_list.html')
@@ -190,13 +189,17 @@ class BaseNode(object):
             'view': self,
             'node': self.node,
             'children': get_node_list(),
-            'actions': self.list_actions(request),
+            'actions': self.list_actions(self.request),
         }
         context.update(overrides or {})
-        return render(request, template, context)
+        return render(self.request, template, context)
 
-    def search_view(self, request, overrides=None):
-        query = request.GET.get('q')
+provideAdapter(ListView, name="list")
+
+
+class SearchView(ListView):
+    def render(self, overrides=None):
+        query = self.request.GET.get('q')
         if not query:
             raise Http404
 
@@ -221,20 +224,13 @@ class BaseNode(object):
             'children': results,
         }
         context.update(overrides or {})
-        return render(request, template, context)
+        return render(self.request, template, context)
 
-    def details_actions(self, request):
-        actions = []
-        if self.node:
-            link = reverse('node_update', args=[self.node._id])
-            actions.append((link, _('Edit'), None))
+provideAdapter(SearchView, name="search")
 
-        actions.append((None, _('Convert to'),
-                       self.get_convert_to_links(request)))
 
-        return actions
-
-    def details_view(self, request, overrides=None):
+class DetailsView(NodeView):
+    def render(self, overrides=None):
         # TODO: a hi-tech algorithm needed here, that can take all
         # comment tree, two levels deep and display this tree in one
         # cycle.
@@ -250,7 +246,7 @@ class BaseNode(object):
             'view': self,
             'node': self.node,
             'comments': comments,
-            'actions': self.details_actions(request),
+            'actions': self.details_actions(),
         }
         context.update(overrides)
 
@@ -260,35 +256,46 @@ class BaseNode(object):
         if 'comment_form' not in context:
             context['comment_form'] = CommentForm()
 
-        return render(request, template, context)
+        return render(self.request, template, context)
 
-    def get_form(self, *args, **kwargs):
-        if self.node:
-            kwargs['initial'] = {'parent': self.node._id}
-        return self.form(*args, **kwargs)
+provideAdapter(DetailsView)
+provideAdapter(DetailsView, name="details")
 
-    def create_view(self, request):
-        if not self.can(request, 'create', self.__class__):
-            return render(request, '403.html', status=403)
 
-        if request.method == 'POST':
-            form = self.get_form(request.POST)
+class CreateView(NodeView):
+    # adapts(<parent_node>, <child_node_factory>)
+    adapts(object, INode)
+
+    def __init__(self, node, factory):
+        self.node = node
+        self.factory = factory
+
+    def render(self):
+        if not self.can('create', self.factory):
+            return render(self.request, '403.html', status=403)
+
+        if self.request.method == 'POST':
+            form = self.get_form(self.request.POST)
             if form.is_valid():
-                node = self.form_save(form, create=True)
+                child = self.form_save(form, create=True)
                 if self.node:
                     return redirect(self.node.permalink())
                 else:
-                    return redirect(node.permalink())
+                    return redirect(child.permalink())
         else:
             form = self.get_form()
 
-        return render(request, 'sboard/node_form.html', {
+        return render(self.request, 'sboard/node_form.html', {
               'form': form,
           })
 
-    def update_view(self, request):
-        if request.method == 'POST':
-            form = self.form(request.POST, instance=self.node)
+provideAdapter(CreateView, name="create")
+
+
+class UpdateView(NodeView):
+    def render(self):
+        if self.request.method == 'POST':
+            form = self.form(self.request.POST, instance=self.node)
             if form.is_valid():
                 node = self.form_save(form, create=False)
                 return redirect(node.permalink())
@@ -296,16 +303,20 @@ class BaseNode(object):
             form = self.form(instance=self.node,
                              initial={'body': self.node.get_body()})
 
-        return render(request, 'sboard/node_form.html', {
+        return render(self.request, 'sboard/node_form.html', {
               'form': form,
           })
 
-    def convert_to_view(self, request):
-        if request.method == 'POST':
+provideAdapter(UpdateView, name="update")
+
+
+class ConvertView(NodeView):
+    def render(self):
+        if self.request.method == 'POST':
             doc = dict(self.node._doc)
             doc.pop('doc_type')
             node = self.model.wrap(doc)
-            form = self.form(request.POST, instance=node)
+            form = self.form(self.request.POST, instance=node)
             if form.is_valid():
                 node = self.form_save(form, create=False)
                 return redirect(node.permalink())
@@ -314,63 +325,23 @@ class BaseNode(object):
             initial['body'] = self.node.get_body()
             form = self.form(instance=self.node, initial=initial)
 
-        return render(request, 'sboard/node_form.html', {
+        return render(self.request, 'sboard/node_form.html', {
               'form': form,
           })
 
-    def delete_view(self, request):
+provideAdapter(ConvertView, name="convert")
+
+
+class DeleteView(NodeView):
+    def render(self):
         raise NotImplementedError
 
-    def tag_view(self, request):
-        if request.method != 'POST':
-            raise Http404
-
-        form = TagForm(self.node, request.POST)
-        if form.is_valid():
-            Tag.create_if_not_exists(form.cleaned_data['tag'])
-            history_node = TagsChange.create(self.node, 'tags-change')
-            self.node.tags.append(form.cleaned_data['tag'])
-            self.node.history = history_node._id
-            self.node.save()
-            return redirect(self.node.permalink())
-        else:
-            return self.details_view(request, {
-                'tag_form': form,
-            })
-
-    def comment_view(self, request):
-        if request.method != 'POST':
-            raise Http404
-
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            self.form_save(form, create=True)
-            return redirect(self.node.permalink())
-        else:
-            return self.details_view(request, {
-                'comment_form': form,
-            })
-
-    def form_save(self, form, create):
-        node = form.save(commit=False)
-        if create:
-            node._id = node.get_new_id()
-        else:
-            # TODO: create history entry
-            pass
-        node.set_parents(form.cleaned_data.get('parent'))
-        if self.node:
-            self.node.before_child_save(form, node, create=create)
-        node.before_save(form, node, create=create)
-        node.save()
-        return node
+provideAdapter(DeleteView, name="delete")
 
 
-class CommentNode(BaseNode):
-    slug = 'comments'
-    name = _('Comment')
-    node = None
-    model = Comment
+class CommentCreateView(CreateView):
+    adapts(object, IComment)
+
     form = CommentForm
 
     @classmethod
@@ -379,35 +350,57 @@ class CommentNode(BaseNode):
             return node is not None
         return True
 
-    def create_view(self, request):
+    def render(self):
+        # Can not create comment if parent node is not provided.
         if not self.node:
             raise Http404
+
+        if self.request.method == 'POST':
+            return super(CommentCreateView, self).render()
         else:
-            return super(CommentNode, self).create_view(request)
+            details = DetailsView(self.node)
+            details.request = self.request
+            return self.render({
+                'comment_form': self.get_form(),
+            })
+
+provideAdapter(CommentCreateView, name="create")
 
 
-class TagNode(BaseNode):
-    slug = 'tags'
-    name = _('Tag')
-    model = Tag
-    form = TagNodeForm
-    list_create = False
-
-    listing = True
+class TagView(NodeView):
+    adapts(ITag)
 
     def get_node_list(self):
         return couch.by_tag(key=self.node._id, include_docs=True, limit=10)
 
+    def render(self):
+        if self.request.method != 'POST':
+            raise Http404
 
-class HistoryNode(BaseNode):
-    name = _('History')
-    model = History
-    convert_to = False
-    list_create = False
+        form = TagForm(self.node, self.request.POST)
+        if form.is_valid():
+            Tag.create_if_not_exists(form.cleaned_data['tag'])
+            history_node = TagsChange.create(self.node, 'tags-change')
+            self.node.tags.append(form.cleaned_data['tag'])
+            self.node.history = history_node._id
+            self.node.save()
+            return redirect(self.node.permalink())
+        else:
+            return self.details_view(self.request, {
+                'tag_form': form,
+            })
+
+provideAdapter(TagView, name="tag")
 
 
-class TagsChangeNode(BaseNode):
-    name = _('Tags change')
-    model = TagsChange
-    convert_to = False
-    list_create = False
+class HistoryView(NodeView):
+    adapts(IHistory)
+
+
+provideAdapter(HistoryView, name="history")
+
+
+class TagsChangeView(NodeView):
+    adapts(ITagsChange)
+
+provideAdapter(TagsChangeView, name="tags-change")
