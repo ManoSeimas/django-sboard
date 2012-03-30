@@ -19,7 +19,9 @@ from .interfaces import INode
 from .interfaces import INodeView
 from .interfaces import ITag
 from .interfaces import ITagsChange
+from .interfaces import IRoot
 from .models import Node, Comment, Tag, TagsChange, History, DocTypeMap, couch
+from .models import getRootNode
 from .permissions import Permissions
 
 
@@ -128,11 +130,10 @@ class NodeView(object):
 
     def get_node_list(self):
         if self.node:
-            node_type = self.node.__class__.__name__
-            return couch.by_type(startkey=[node_type, 'Z'], endkey=[node_type],
-                                 descending=True, limit=50)
+            key = self.node._id
+            return couch.children_by_date(startkey=[key, 'Z'], endkey=[key],
+                                          descending=True, limit=50)
         else:
-            node_type = self.node.__class__.__name__
             return couch.all_nodes(descending=True, limit=50)
 
     def list_actions(self):
@@ -159,7 +160,7 @@ class NodeView(object):
         return actions
 
     def get_form(self, *args, **kwargs):
-        if self.node:
+        if self.node and not self.node.is_root():
             kwargs['initial'] = {'parent': self.node._id}
         return self.form(*args, **kwargs)
 
@@ -170,7 +171,12 @@ class NodeView(object):
         else:
             # TODO: create history entry
             pass
-        node.set_parents(form.cleaned_data.get('parent'))
+        # XXX: actualy parent is always known from self.node, some here more
+        # strict checking must be implemented. Only privileged users should be
+        # able to change node parent, since this is expensive operation...
+        parent = form.cleaned_data.get('parent') or getRootNode()
+        node.parent = parent._id
+        node.set_parents(parent)
         if self.node:
             self.node.before_child_save(form, node, create=create)
         node.before_save(form, node, create=create)
@@ -196,6 +202,7 @@ class ListView(NodeView):
         context.update(overrides or {})
         return render(self.request, template, context)
 
+provideAdapter(ListView, (IRoot,))
 provideAdapter(ListView, name="list")
 
 

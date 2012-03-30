@@ -2,7 +2,7 @@ from zope.component import adapts
 from zope.component import provideAdapter
 
 from sboard.models import couch
-from sboard.nodes import CreateView
+from sboard.nodes import CreateView, ListView
 
 from .forms import CategoryForm
 from .interfaces import ICategory
@@ -19,3 +19,6 @@ class CategoryCreateView(CreateView):
         return couch.children(key=self.node._id, include_docs=True, limit=10)
 
 provideAdapter(CategoryCreateView, name="create")
+
+# Show category in ListView by default.
+provideAdapter(ListView, (ICategory,))

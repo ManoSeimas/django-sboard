@@ -77,7 +77,7 @@ class SboardCouchViews(object):
 
     def wrap(self, data):
         # TODO: change doc_type to node_type
-        cls = self.get_doc_type_map().get(data['doc_type'])
+        cls = self.get_doc_type_map().get(data['doc_type'].lower())
         return cls.wrap(data)
 
     def get(self, docid, rev=None):
@@ -268,6 +268,9 @@ class Node(schema.Document):
                      'settings.COUCHDB_DATABASES setting.' % cls))
             cls._db = db
         return db
+
+    def is_root(self):
+        return IRoot.providedBy(self)
 
 
 provideNode(Node, "node")
