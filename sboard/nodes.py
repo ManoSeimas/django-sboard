@@ -103,10 +103,10 @@ class NodeView(object):
         permissions = self.get_permissions()
         return permissions.can(self.request, action, factory.name)
 
-    def get_create_links(self, request):
+    def get_create_links(self):
         links = []
         for name, factory in getNodeFactories():
-            if self.can(request, 'create', factory):
+            if self.can('create', factory):
                 if self.node:
                     args = (self.node._id, name)
                     link = reverse('node_create_child', args=args)
@@ -179,6 +179,8 @@ class NodeView(object):
 
 
 class ListView(NodeView):
+    adapts(INode)
+
     def render(self, overrides=None):
         overrides = overrides or {}
         get_node_list = overrides.pop('get_node_list', self.get_node_list)
@@ -189,7 +191,7 @@ class ListView(NodeView):
             'view': self,
             'node': self.node,
             'children': get_node_list(),
-            'actions': self.list_actions(self.request),
+            'actions': self.list_actions(),
         }
         context.update(overrides or {})
         return render(self.request, template, context)
