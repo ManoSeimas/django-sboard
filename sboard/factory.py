@@ -53,3 +53,20 @@ def createNode(name, *args, **kwargs):
 
 def getNodeFactories():
     return getUtilitiesFor(INodeFactory)
+
+
+def autodiscover():
+    """
+    Auto-discover INSTALLED_APPS nodes.py modules and fail silently when
+    not present. This forces an import on them to register any node bits they
+    may want.
+    """
+
+    from django.conf import settings
+    from django.utils.importlib import import_module
+    from django.utils.module_loading import module_has_submodule
+
+    for app in settings.INSTALLED_APPS:
+        mod = import_module(app)
+        if module_has_submodule(mod, 'nodes'):
+            import_module('%s.nodes' % app)

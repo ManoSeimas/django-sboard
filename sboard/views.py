@@ -18,12 +18,6 @@ from .interfaces import INodeView
 from .models import Media, couch
 
 
-# TODO: move this to autodiscover function
-# -----------------
-from . import nodes
-from .categories import nodes
-# -----------------
-
 def node(request, key=None, action='', name=''):
     if key is None:
         node = None
