@@ -377,7 +377,7 @@ provideAdapter(CommentCreateView, name="create")
 
 
 class TagView(NodeView):
-    adapts(ITag)
+    adapts(INode)
 
     def get_node_list(self):
         return couch.by_tag(key=self.node._id, include_docs=True, limit=10)
