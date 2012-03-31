@@ -1,8 +1,5 @@
 from django.conf.urls.defaults import patterns, url, include
 
-# TODO: fix it
-# from .nodes import get_node_urls
-
 slug = r'[a-z0-9~-]+'
 
 node = patterns('sboard.views',
@@ -19,10 +16,8 @@ node = patterns('sboard.views',
     url(r'^delete/$', 'node', {'action': 'delete'}, name='node_delete'),
     url(r'^tag/$', 'node', {'action': 'tag'}, name='node_tag'),
     url(r'^comment/$', 'node', {'action': 'comment'}, name='node_comment'),
+    url(r'^(?P<action>%s)/$' % slug, 'node', {}, name='node_action'),
 )
-
-# TODO: fix it
-# node += get_node_urls()
 
 media = patterns('sboard.views',
     url(r'^(?P<slug>%s)/normal.(?P<ext>[a-z0-9]+)$' % slug, 'render_image',
