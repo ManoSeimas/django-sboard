@@ -43,6 +43,7 @@ class DocTypeMap(dict):
 
 
     def get(self, key, default=None):
+        key = key.lower()
         return super(DocTypeMap, self).get(key, default) or self.default
 
 
