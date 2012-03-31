@@ -376,11 +376,17 @@ class CommentCreateView(CreateView):
 provideAdapter(CommentCreateView, name="create")
 
 
-class TagView(NodeView):
+class TagListView(ListView):
     adapts(INode)
 
     def get_node_list(self):
         return couch.by_tag(key=self.node._id, include_docs=True, limit=10)
+
+provideAdapter(TagListView, name="tags")
+
+
+class TagView(NodeView):
+    adapts(INode)
 
     def render(self):
         if self.request.method != 'POST':
