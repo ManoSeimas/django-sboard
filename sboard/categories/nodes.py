@@ -21,4 +21,4 @@ class CategoryCreateView(CreateView):
 provideAdapter(CategoryCreateView, name="create")
 
 # Show category in ListView by default.
-provideAdapter(ListView, (ICategory,))
+#provideAdapter(ListView, (ICategory,))
