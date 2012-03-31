@@ -31,7 +31,11 @@
   </div>
   
   <hr />
+
+  {% block node_actions %}
+  {% endblock %}
   
+  {% block tag_form %}
   <h2>{% trans "Add tag" %}</h2>
   
   <form action="{{ node.tag_url }}" method="post">
@@ -39,6 +43,7 @@
     <p>{{ tag_form.tag.errors }}{{ tag_form.tag }}</p>
     <p><button type="submit" class="btn btn-primary">{% trans "Save" %}</button></p>
   </form>
+  {% endblock %}
   
   <hr />
   

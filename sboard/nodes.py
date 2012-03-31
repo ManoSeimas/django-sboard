@@ -401,9 +401,12 @@ class TagView(NodeView):
             self.node.save()
             return redirect(self.node.permalink())
         else:
-            return self.details_view(self.request, {
+            details = DetailsView(self.node)
+            details.request = self.request
+            return self.render({
                 'tag_form': form,
             })
+
 
 provideAdapter(TagView, name="tag")
 
