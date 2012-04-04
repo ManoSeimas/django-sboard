@@ -220,7 +220,7 @@ class SearchView(ListView):
             ])
 
         results = es.conn.search(search)[:25]
-        results = [doc_type_map[doc.get('doc_type')].wrap(doc)
+        results = [doc_type_map.get(doc.get('doc_type')).wrap(doc)
                    for doc in results]
 
         overrides = overrides or {}
