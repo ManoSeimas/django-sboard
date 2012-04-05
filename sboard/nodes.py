@@ -1,26 +1,32 @@
+from pyes import Search
+from pyes import TermQuery
 from zope.component import adapts
 from zope.component import provideAdapter
 from zope.interface import implements
 
 from django.core.urlresolvers import reverse
 from django.http import Http404
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect
+from django.shortcuts import render
 from django.utils.translation import ugettext_lazy as _
-
-from pyes import TermQuery, Search
 
 from . import es
 from .factory import getNodeFactories
 from .factory import getNodeFactory
-from .forms import NodeForm, TagForm, TagNodeForm, CommentForm
+from .forms import CommentForm
+from .forms import NodeForm
+from .forms import TagForm
 from .interfaces import IComment
 from .interfaces import IHistory
 from .interfaces import INode
 from .interfaces import INodeView
-from .interfaces import ITag
-from .interfaces import ITagsChange
 from .interfaces import IRoot
-from .models import Node, Comment, Tag, TagsChange, History, DocTypeMap, couch
+from .interfaces import ITagsChange
+from .models import DocTypeMap
+from .models import Node
+from .models import Tag
+from .models import TagsChange
+from .models import couch
 from .models import getRootNode
 from .permissions import Permissions
 
