@@ -1,5 +1,5 @@
 from pyes import Search
-from pyes import TermQuery
+from pyes import TextQuery
 from zope.component import adapts
 from zope.component import provideAdapter
 from zope.interface import implements
@@ -219,13 +219,14 @@ class SearchView(ListView):
             raise Http404
 
         doc_type_map = DocTypeMap()
-        q = TermQuery('title', query)
+
+        q = TextQuery('title', query)
         search = Search(q, sort=[
                 {'importance': {'order': 'desc'}},
                 {'created': {'order': 'desc'}},
             ])
 
-        results = es.conn.search(search)[:25]
+        results = es.conn.search(search, 'sboard', 'allnodes')[:25]
         results = [doc_type_map.get(doc.get('doc_type')).wrap(doc)
                    for doc in results]
 
