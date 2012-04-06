@@ -161,7 +161,7 @@ class NodesTests(NodesTestsMixin, TestCase):
 
         # Create root category with superuser rights
         response = self._create('category', title='C1')
-        self.assertRedirects(response, reverse('node_details', args=['c1']))
+        self.assertRedirects(response, reverse('node_details', args=['~']))
 
         self._login_user1()
 
