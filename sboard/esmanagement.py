@@ -18,8 +18,10 @@ class ESManagementException(Exception):
 
 
 class ESManagement(object):
-    def __init__(self, path):
+    def __init__(self, path, index_name='sboard', couchdb_server=None):
         self.path = os.path.abspath(path)
+        self.index_name = index_name
+        self.couchdb_server = couchdb_server or Node.get_db().uri
         self.pid_file = os.path.join(self.path, 'PID')
         self.elasticsearch = os.path.join(self.path, 'bin', 'elasticsearch')
 
@@ -66,35 +68,33 @@ class ESManagement(object):
             if p.name == 'java' and arg in p.cmdline:
                 yield p.pid
 
-    def install(self):
-        uri = Node.get_db().uri
-        uri = urlparse.urlparse(uri)
+    def _get_couchdb_river(self, **kwargs):
+        uri = urlparse.urlparse(self.couchdb_server)
         params = {
-            'index_name': 'sboard',
+            'index_name': self.index_name,
             'index_type': 'allnodes',
             'host': uri.hostname,
             'port': uri.port,
             'db': uri.path.split('/')[1],
         }
-
         if uri.username:
             params['user'] = uri.username
         if uri.password:
             params['password'] = uri.password
+        params.update(kwargs)
+        return CouchDBRiver(**params)
 
-        river = CouchDBRiver(**params)
-        es.conn.create_river(river, river_name='sboard')
+    def install(self):
+        if not es.conn.exists_index('_river/%s' % self.index_name):
+            river = self._get_couchdb_river()
+            es.conn.create_river(river)
 
-    def is_installed(self):
-        try:
-            f = urllib2.urlopen("http://localhost:9200/_river/sboard/_status")
-        except urllib2.HTTPError:
-            return False
-        data = f.read()
-        f.close()
-        data = json.loads(data)
-        return data['exists']
-
+    def uninstall(self):
+        if es.conn.exists_index('_river/%s' % self.index_name):
+            river = self._get_couchdb_river()
+            es.conn.delete_river(river)
+        if es.conn.exists_index(self.index_name):
+            es.conn.delete_index(self.index_name)
 
     def get_running_time(self):
         if os.path.exists(self.pid_file):
