@@ -101,7 +101,7 @@ class NodeView(object):
     def has_child_permission(cls, node, action):
         return True
 
-    def can(self, action, factory):
+    def can(self, action, factory=None):
         if factory is None:
             factory = getNodeFactory("node")
 
@@ -144,7 +144,7 @@ class NodeView(object):
 
     def list_actions(self):
         actions = []
-        if self.node:
+        if self.node and self.can('update'):
             link = reverse('node_update', args=[self.node._id])
             actions.append((link, _('Edit'), None))
 
@@ -310,6 +310,9 @@ provideAdapter(CreateView, name="create")
 
 class UpdateView(NodeView):
     def render(self):
+        if not self.can('update'):
+            return render(self.request, '403.html', status=403)
+
         if self.request.method == 'POST':
             form = self.form(self.request.POST, instance=self.node)
             if form.is_valid():
