@@ -102,7 +102,31 @@ class NodeProperty(schema.StringProperty):
         return super(NodeProperty, self).validate(value, required)
 
 
-class Node(schema.Document):
+class BaseNode(schema.Document):
+    @classmethod
+    def get_db(cls):
+        """Returns CouchDB database associated with this model.
+
+        In addition to ``schema.Document.get_db``, this method provides same
+        database as bound to ``Node``, to all other models, that extends
+        ``Node``.
+        """
+        db = getattr(cls, '_db', None)
+        if db is None:
+            app_label = getattr(cls._meta, "app_label")
+            if app_label in couchdbkit_handler._databases:
+                db = couchdbkit_handler.get_db(app_label)
+            elif cls is not Node:
+                db = Node.get_db()
+            else:
+                raise ImproperlyConfigured(
+                    ('Can not find CouchDB database for %s model. Check '
+                     'settings.COUCHDB_DATABASES setting.' % cls))
+            cls._db = db
+        return db
+
+
+class Node(BaseNode):
     implements(INode)
 
     # Author, who initiali created this node.
@@ -247,28 +271,6 @@ class Node(schema.Document):
         This method does same as before_save, except is called on parent node.
         """
         pass
-
-    @classmethod
-    def get_db(cls):
-        """Returns CouchDB database associated with this model.
-
-        In addition to ``schema.Document.get_db``, this method provides same
-        database as bound to ``Node``, to all other models, that extends
-        ``Node``.
-        """
-        db = getattr(cls, '_db', None)
-        if db is None:
-            app_label = getattr(cls._meta, "app_label")
-            if app_label in couchdbkit_handler._databases:
-                db = couchdbkit_handler.get_db(app_label)
-            elif cls is not Node:
-                db = Node.get_db()
-            else:
-                raise ImproperlyConfigured(
-                    ('Can not find CouchDB database for %s model. Check '
-                     'settings.COUCHDB_DATABASES setting.' % cls))
-            cls._db = db
-        return db
 
     def is_root(self):
         return IRoot.providedBy(self)
