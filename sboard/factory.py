@@ -6,6 +6,10 @@ from zope.interface import directlyProvides
 from zope.interface import implementedBy
 from zope.interface import implements
 
+from django.conf import settings
+from django.utils.importlib import import_module
+from django.utils.module_loading import module_has_submodule
+
 
 class INodeFactory(Interface): pass
 
@@ -62,11 +66,21 @@ def autodiscover():
     may want.
     """
 
-    from django.conf import settings
-    from django.utils.importlib import import_module
-    from django.utils.module_loading import module_has_submodule
-
     for app in settings.INSTALLED_APPS:
         mod = import_module(app)
         if module_has_submodule(mod, 'nodes'):
             import_module('%s.nodes' % app)
+
+
+_search_handlers = None
+
+def get_search_handlers():
+    global _search_handlers
+    if _search_handlers is None:
+        _search_handlers = []
+        for pth in settings.SBOARD_SEARCH_HANDLERS:
+            pth, name = pth.rsplit('.', 1)
+            mod = import_module(pth)
+            handler = getattr(mod, name)
+            _search_handlers.append(handler)
+    return _search_handlers

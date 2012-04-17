@@ -7,7 +7,7 @@ from django.test import TestCase
 from couchdbkit.exceptions import ResourceNotFound
 from couchdbkit.ext.django import loading
 
-from .models import couch, Node
+from .models import couch, BaseNode
 from .profiles.models import Profile
 
 
@@ -51,7 +51,7 @@ class NodesTestsMixin(object):
         # register our dbs with the extension document classes
         for app, value in old_handler.app_schema.items():
             for name, cls in value.items():
-                if issubclass(cls, Node):
+                if issubclass(cls, BaseNode):
                     cls.set_db(cls.get_db())
                 else:
                     cls.set_db(loading.get_db(app))

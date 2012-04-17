@@ -14,6 +14,7 @@ from django.http import HttpResponse, Http404
 from couchdbkit.exceptions import ResourceNotFound
 
 from .factory import INodeFactory
+from .factory import get_search_handlers
 from .interfaces import INodeView
 from .models import Media, couch
 from .models import getRootNode
@@ -36,6 +37,23 @@ def node(request, key=None, action='', name=''):
 
     view.request = request
     return view.render()
+
+
+def search(request):
+    query = request.GET.get('q')
+    if not query:
+        raise Http404
+
+    for handler in get_search_handlers():
+        view = handler(query)
+        if view:
+            if INodeView.providedBy(view):
+                view.request = request
+                return view.render()
+            else:
+                return view
+
+    raise Http404
 
 
 def render_image(request, slug, ext):

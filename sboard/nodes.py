@@ -213,36 +213,22 @@ provideAdapter(ListView, name="list")
 
 
 class SearchView(ListView):
-    def render(self, overrides=None):
-        query = self.request.GET.get('q')
-        if not query:
-            raise Http404
+    def __init__(self, query):
+        self.node = None
+        self.query = query
 
+    def get_node_list(self):
         doc_type_map = DocTypeMap()
 
-        q = TextQuery('title', query)
+        q = TextQuery('title', self.query)
         search = Search(q, sort=[
                 {'importance': {'order': 'desc'}},
                 {'created': {'order': 'desc'}},
             ])
 
         results = es.conn.search(search, 'sboard', 'allnodes')[:25]
-        results = [doc_type_map.get(doc.get('doc_type')).wrap(doc)
+        return [doc_type_map.get(doc.get('doc_type')).wrap(doc)
                    for doc in results]
-
-        overrides = overrides or {}
-        template = self.templates.get('list', 'sboard/node_list.html')
-        template = overrides.pop('template', template)
-
-        context = {
-            'view': self,
-            'node': self.node,
-            'children': results,
-        }
-        context.update(overrides or {})
-        return render(self.request, template, context)
-
-provideAdapter(SearchView, name="search")
 
 
 class DetailsView(NodeView):

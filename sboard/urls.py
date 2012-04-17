@@ -29,7 +29,7 @@ urlpatterns = patterns('sboard.views',
     url(r'^create/$', 'node', {'action': 'create'}, name='node_create'),
     url(r'^create/(?P<name>%s)/$' % slug, 'node', {'action': 'create'},
         name='node_create'),
-    url(r'^search/$', 'node', {'action': 'search'}, name='node_search'),
+    url(r'^search/$', 'search', name='node_search'),
     url(r'^media/', include(media)),
     url(r'^(?P<key>%s)/' % slug, include(node)),
 )
