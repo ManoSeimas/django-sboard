@@ -2,7 +2,7 @@ from zope.component import adapts
 from zope.component import provideAdapter
 
 from sboard.models import couch
-from sboard.nodes import CreateView, ListView
+from sboard.nodes import CreateView
 
 from .forms import CategoryForm
 from .interfaces import ICategory

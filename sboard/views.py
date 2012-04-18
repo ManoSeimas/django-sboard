@@ -9,9 +9,11 @@ from zope.component import getAdapter
 from zope.component import getMultiAdapter
 from zope.component import getUtility
 
-from django.http import HttpResponse, Http404
+from django.http import Http404
+from django.http import HttpResponse
 
-from couchdbkit.exceptions import ResourceNotFound
+from couchdbkit.exceptions import MultipleResultsFound
+from couchdbkit.exceptions import NoResultFound
 
 from .factory import INodeFactory
 from .factory import get_search_handlers
@@ -20,13 +22,16 @@ from .models import Media, couch
 from .models import getRootNode
 
 
-def node(request, key=None, action='', name=''):
-    if key is None:
+def node(request, slug=None, action='', name=''):
+    if slug is None or slug == '~':
         node = getRootNode()
     else:
+        query = couch.by_slug(key=slug, limit=20)
         try:
-            node = couch.get(key)
-        except ResourceNotFound:
+            node = query.one(True)
+        except MultipleResultsFound:
+            return duplicate_slug_nodes(request, query)
+        except NoResultFound:
             raise Http404
 
     if name:
@@ -37,6 +42,13 @@ def node(request, key=None, action='', name=''):
 
     view.request = request
     return view.render()
+
+
+def duplicate_slug_nodes(request, nodes):
+    node = getRootNode()
+    view = getAdapter(node, INodeView, 'list')
+    view.request = request
+    return view.render(node_list=nodes)
 
 
 def search(request):

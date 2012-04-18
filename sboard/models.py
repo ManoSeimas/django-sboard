@@ -6,6 +6,8 @@ from zope.interface import implements
 from django.contrib.markup.templatetags import markup
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
+from django.db import models
+from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 
 from couchdbkit.exceptions import ResourceNotFound
@@ -24,7 +26,7 @@ from .interfaces import INode
 from .interfaces import IRoot
 from .interfaces import ITag
 from .interfaces import ITagsChange
-from .utils import get_node_id
+from .utils import base36
 
 
 class DocTypeMap(dict):
@@ -95,6 +97,37 @@ class SboardCouchViews(object):
 couch = SboardCouchViews()
 
 
+class UniqueKeyManager(models.Manager):
+    @transaction.commit_on_success
+    def create(self):
+        obj = UniqueKey()
+        obj.save()
+        obj.key = base36(obj.pk).zfill(6)
+        obj.save()
+        return obj
+
+
+class UniqueKey(models.Model):
+    """Unique key generator.
+
+    This model ensures unique key generation, incremented by 1 and converted to
+    base36.
+
+    Generated key is 6 characters length and can identify 2 176 782 335 nodes.
+
+    >>> UniqueKey.objects.create().key
+    '000001'
+    >>> UniqueKey.objects.create().key
+    '000002'
+    >>> UniqueKey.objects.create().key
+    '000003'
+
+    """
+    key = models.PositiveIntegerField(unique=True, null=True)
+
+    objects = UniqueKeyManager()
+
+
 class NodeProperty(schema.StringProperty):
     def validate(self, value, required=True):
         if isinstance(value, Node):
@@ -129,7 +162,10 @@ class BaseNode(schema.Document):
 class Node(BaseNode):
     implements(INode)
 
-    # Author, who initiali created this node.
+    # Node slug, that is used to get node from human readable url address.
+    slug = schema.StringProperty()
+
+    # Author, who initially created this node.
     author = schema.StringProperty()
 
     # Node title.
@@ -170,6 +206,9 @@ class Node(BaseNode):
         self._properties['importance'].default = self._default_importance
         super(Node, self).__init__(*args, **kwargs)
 
+    def get_slug(self):
+        return self.slug or self._id
+
     def get_children(self):
         # TODO: here each returned document must be mapped to model specified
         # in ``doc_type`` of that document. How to do that?
@@ -192,7 +231,7 @@ class Node(BaseNode):
         )
 
     def get_new_id(self):
-        return get_node_id(self.title)
+        return UniqueKey.objects.create().key
 
     def has_parent(self):
         # TODO: this method is not needed any more in favor of self.parent
@@ -252,10 +291,7 @@ class Node(BaseNode):
     render_body.is_safe = True
 
     def permalink(self):
-        return reverse('node_details', args=[self._id])
-
-    def tag_url(self):
-        return reverse('node_tag', args=[self._id])
+        return reverse('node', args=[self.get_slug()])
 
     def before_save(self, form, node, create=False):
         """This method will be called before saving node.

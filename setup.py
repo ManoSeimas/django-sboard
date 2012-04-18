@@ -8,4 +8,5 @@ setup(name='django-sboard',
           'psutil',
           'unidecode',
           'zope.component',
+          'sqlalchemy',
       ])

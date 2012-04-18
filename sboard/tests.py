@@ -102,10 +102,8 @@ class NodesTestsMixin(object):
         for f in fields:
             kwargs[f] = getattr(self, '_f_%s' % f)
 
-        if 'parent' in kwargs:
-            url = reverse('node_create_child', args=[kwargs['parent'], node])
-        else:
-            url = reverse('node_create', args=[node])
+        parent = kwargs.get('parent', '~')
+        url = reverse('node', args=[parent, 'create', node])
 
         return self.client.post(url, kwargs)
 
@@ -120,7 +118,7 @@ class NodesTestsMixin(object):
             )
 
         """
-        node = couch.get(node)
+        node = couch.by_slug(key=node).first()
         node.permissions = [list(p) for p in permissions]
         node.save()
 
@@ -161,7 +159,7 @@ class NodesTests(NodesTestsMixin, TestCase):
 
         # Create root category with superuser rights
         response = self._create('category', title='C1')
-        self.assertRedirects(response, reverse('node_details', args=['~']))
+        self.assertRedirects(response, reverse('node', args=['~']))
 
         self._login_user1()
 
@@ -172,7 +170,7 @@ class NodesTests(NodesTestsMixin, TestCase):
         # Set permissions to allow create comments to all authenticated users
         self._set_perm('c1', ('create', 'all', 'authenticated', 'comment', 0))
         response = self._create('comment', parent='c1', _f=('body',))
-        self.assertRedirects(response, reverse('node_details', args=['c1']))
+        self.assertRedirects(response, reverse('node', args=['c1']))
 
         # Require higher karma to create comments
         self._set_perm('c1', ('create', 'all', 'authenticated', 'comment', 10))
@@ -182,7 +180,7 @@ class NodesTests(NodesTestsMixin, TestCase):
         # Give user needed karma to be able to create comment
         self._set_karma('u1', 10)
         response = self._create('comment', parent='c1', _f=('body',))
-        self.assertRedirects(response, reverse('node_details', args=['c1']))
+        self.assertRedirects(response, reverse('node', args=['c1']))
 
         self._logout()
 
@@ -193,4 +191,11 @@ class NodesTests(NodesTestsMixin, TestCase):
         # Allow anonymous users to create comments
         self._set_perm('c1', ('create', 'all', None, 'comment', 0))
         response = self._create('comment', parent='c1', _f=('body',))
-        self.assertRedirects(response, reverse('node_details', args=['c1']))
+        self.assertRedirects(response, reverse('node', args=['c1']))
+
+
+class TestNodeSlug(NodesTestsMixin, TestCase):
+    def testNotExisting(self):
+        url = reverse('node', args=['not-existing-node'])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)

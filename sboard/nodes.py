@@ -29,6 +29,7 @@ from .models import TagsChange
 from .models import couch
 from .models import getRootNode
 from .permissions import Permissions
+from .utils import slugify
 
 
 _nodes_by_model = None
@@ -115,22 +116,19 @@ class NodeView(object):
         links = []
         for name, factory in getNodeFactories():
             if self.can('create', factory):
+                slug = '~'
                 if self.node:
-                    args = (self.node._id, name)
-                    link = reverse('node_create_child', args=args)
-                    links.append((link, name))
-                else:
-                    args = (name,)
-                    link = reverse('node_create', args=args)
-                    links.append((link, name))
+                    slug = self.node.get_slug()
+                link = reverse('node', args=(slug, 'create', name))
+                links.append((link, name))
         return links
 
     def get_convert_to_links(self):
         links = []
         for name, factory in getNodeFactories():
             if self.can('create', factory):
-                args = (self.node._id, name)
-                link = reverse('node_convert_to', args=args)
+                args = (self.node.get_slug(), 'convert', name)
+                link = reverse('node', args=args)
                 links.append((link, name))
         return links
 
@@ -145,7 +143,7 @@ class NodeView(object):
     def list_actions(self):
         actions = []
         if self.node and self.can('update'):
-            link = reverse('node_update', args=[self.node._id])
+            link = reverse('node', args=[self.node.get_slug(), 'update'])
             actions.append((link, _('Edit'), None))
 
         create_links = self.get_create_links()
@@ -157,7 +155,7 @@ class NodeView(object):
     def details_actions(self):
         actions = []
         if self.node:
-            link = reverse('node_update', args=[self.node._id])
+            link = reverse('node', args=[self.node.get_slug(), 'update'])
             actions.append((link, _('Edit'), None))
 
         actions.append((None, _('Convert to'),
@@ -177,6 +175,7 @@ class NodeView(object):
         else:
             # TODO: create history entry
             pass
+        node.slug = slugify(node.title)
         # XXX: actualy parent is always known from self.node, some here more
         # strict checking must be implemented. Only privileged users should be
         # able to change node parent, since this is expensive operation...
@@ -193,16 +192,18 @@ class NodeView(object):
 class ListView(NodeView):
     adapts(INode)
 
-    def render(self, overrides=None):
-        overrides = overrides or {}
-        get_node_list = overrides.pop('get_node_list', self.get_node_list)
+    def render(self, **overrides):
+        node_list = overrides.pop('node_list', self.get_node_list)
         template = self.templates.get('list', 'sboard/node_list.html')
         template = overrides.pop('template', template)
+
+        if callable(node_list):
+            node_list = node_list()
 
         context = {
             'view': self,
             'node': self.node,
-            'children': get_node_list(),
+            'children': node_list,
             'actions': self.list_actions(),
         }
         context.update(overrides or {})
@@ -232,7 +233,7 @@ class SearchView(ListView):
 
 
 class DetailsView(NodeView):
-    def render(self, overrides=None):
+    def render(self, **overrides):
         # TODO: a hi-tech algorithm needed here, that can take all
         # comment tree, two levels deep and display this tree in one
         # cycle.
@@ -240,7 +241,6 @@ class DetailsView(NodeView):
                                   endkey=[self.node._id], descending=True,
                                   include_docs=True, limit=10)
 
-        overrides = overrides or {}
         template = self.templates.get('details', 'sboard/node_details.html')
         template = overrides.pop('template', template)
 
@@ -365,9 +365,7 @@ class CommentCreateView(CreateView):
         else:
             details = DetailsView(self.node)
             details.request = self.request
-            return self.render({
-                'comment_form': self.get_form(),
-            })
+            return self.render(comment_form=self.get_form())
 
 provideAdapter(CommentCreateView, name="create")
 
@@ -399,9 +397,7 @@ class TagView(NodeView):
         else:
             details = DetailsView(self.node)
             details.request = self.request
-            return self.render({
-                'tag_form': form,
-            })
+            return self.render(tag_form=form)
 
 
 provideAdapter(TagView, name="tag")

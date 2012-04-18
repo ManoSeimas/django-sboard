@@ -26,7 +26,7 @@
   
   <div>
     {% for tag in node.tags %}
-    <a href="{% url node_details tag %}"><i class="icon-tag"></i>{{ tag }}</a>
+    <a href="{% url node tag %}"><i class="icon-tag"></i>{{ tag }}</a>
     {% endfor %}
   </div>
   
@@ -38,7 +38,7 @@
   {% block tag_form %}
   <h2>{% trans "Add tag" %}</h2>
   
-  <form action="{{ node.tag_url }}" method="post">
+  <form action="{% url node node.get_slug 'tag' %}" method="post">
     {% csrf_token %}
     <p>{{ tag_form.tag.errors }}{{ tag_form.tag }}</p>
     <p><button type="submit" class="btn btn-primary">{% trans "Save" %}</button></p>
@@ -49,7 +49,7 @@
   
   <h2>{% trans "Create new comment" %}</h2>
   
-  <form action="{% url node_comment node.get_id %}" method="post">
+  <form action="{% url node node.get_slug 'comment' %}" method="post">
     {% csrf_token %}
     {% if comment_form.body.errors %}
     <p>{{ comment_form.body.errors }}</p>
