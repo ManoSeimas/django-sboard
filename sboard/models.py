@@ -165,6 +165,9 @@ class Node(BaseNode):
     # Node slug, that is used to get node from human readable url address.
     slug = schema.StringProperty()
 
+    # Node keywords, used in search.
+    keywords = schema.ListProperty()
+
     # Author, who initially created this node.
     author = schema.StringProperty()
 
