@@ -10,7 +10,7 @@ class NodeField(forms.SlugField):
     def clean(self, value):
         value = super(NodeField, self).clean(value)
         if value in EMPTY_VALUES:
-            return value
+            return None
         try:
             return couch.get(value)
         except ResourceNotFound:

@@ -87,8 +87,7 @@ class NodeView(object):
             return self._permissions
 
         permissions = Permissions()
-
-        # TODO: root node permissions should be also taken
+        permissions.update(getRootNode().permissions)
 
         if self.node:
             for ancestor in self.node.get_ancestors():
@@ -164,7 +163,7 @@ class NodeView(object):
         return actions
 
     def get_form(self, *args, **kwargs):
-        if self.node and not self.node.is_root():
+        if self.node:
             kwargs['initial'] = {'parent': self.node._id}
         return self.form(*args, **kwargs)
 
@@ -179,9 +178,10 @@ class NodeView(object):
         # XXX: actualy parent is always known from self.node, some here more
         # strict checking must be implemented. Only privileged users should be
         # able to change node parent, since this is expensive operation...
-        parent = form.cleaned_data.get('parent') or getRootNode()
-        node.parent = parent._id
-        node.set_parents(parent)
+        parent = form.cleaned_data.get('parent')
+        if parent:
+            node.parent = parent._id
+            node.set_parents(parent)
         if self.node:
             self.node.before_child_save(form, node, create=create)
         node.before_save(form, node, create=create)
