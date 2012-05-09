@@ -57,7 +57,7 @@ class NodesTestsMixin(object):
                     cls.set_db(loading.get_db(app))
 
         for app in get_apps():
-            loading.couchdbkit_handler.sync(app, verbosity=2)
+            loading.couchdbkit_handler.sync(app, verbosity=0)
 
     def _teardown_couchdb(self):
         deleted_databases = []
