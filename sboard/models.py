@@ -106,6 +106,9 @@ class UniqueKeyManager(models.Manager):
         obj.save()
         return obj
 
+    def last_key(self):
+        return self.latest('pk')
+
 
 class UniqueKey(models.Model):
     """Unique key generator.
@@ -126,6 +129,10 @@ class UniqueKey(models.Model):
     key = models.CharField(max_length=16, unique=True, null=True)
 
     objects = UniqueKeyManager()
+
+
+def get_new_id():
+    return UniqueKey.objects.create().key
 
 
 class NodeProperty(schema.StringProperty):
