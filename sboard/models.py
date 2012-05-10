@@ -123,7 +123,7 @@ class UniqueKey(models.Model):
     '000003'
 
     """
-    key = models.PositiveIntegerField(unique=True, null=True)
+    key = models.CharField(max_length=16, unique=True, null=True)
 
     objects = UniqueKeyManager()
 
