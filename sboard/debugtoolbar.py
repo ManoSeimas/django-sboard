@@ -1,3 +1,5 @@
+import pprint
+
 from zope.component import getAdapter
 from zope.component import getMultiAdapter
 from zope.component import getUtility
@@ -66,6 +68,7 @@ class NodeDebugPanel(DebugPanel):
             self.record_stats({
                 'view': view,
                 'node': node,
+                'doc': pprint.pformat(node._doc),
             })
             self.has_content = True
         else:
