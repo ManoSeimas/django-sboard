@@ -1,5 +1,6 @@
-from pyes import Search
-from pyes import TextQuery
+import re
+import unidecode
+
 from zope.component import adapts
 from zope.component import provideAdapter
 from zope.interface import implements
@@ -10,7 +11,6 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils.translation import ugettext_lazy as _
 
-from . import es
 from .factory import getNodeFactories
 from .factory import getNodeFactory
 from .forms import CommentForm
@@ -22,7 +22,6 @@ from .interfaces import INode
 from .interfaces import INodeView
 from .interfaces import IRoot
 from .interfaces import ITagsChange
-from .models import DocTypeMap
 from .models import Node
 from .models import Tag
 from .models import TagsChange
@@ -34,6 +33,7 @@ from .utils import slugify
 
 _nodes_by_model = None
 
+search_words_re = re.compile(r'[^a-z]+')
 
 
 class NodeView(object):
@@ -219,17 +219,16 @@ class SearchView(ListView):
         self.query = query
 
     def get_node_list(self):
-        doc_type_map = DocTypeMap()
-
-        q = TextQuery('title', self.query)
-        search = Search(q, sort=[
-                {'importance': {'order': 'desc'}},
-                {'created': {'order': 'desc'}},
-            ])
-
-        results = es.conn.search(search, 'sboard', 'allnodes')[:25]
-        return [doc_type_map.get(doc.get('doc_type')).wrap(doc)
-                   for doc in results]
+        qry = unidecode.unidecode(self.query)
+        qry = qry.lower()
+        qry = search_words_re.split(qry)
+        qry = filter(None, qry)
+        if len(qry):
+            key = qry[0]
+            args = dict(startkey=[key, 'Z'], endkey=[key])
+            return couch.search(descending=True, limit=50, **args)
+        else:
+            return []
 
 
 class DetailsView(NodeView):
