@@ -2,5 +2,11 @@
 {% load i18n %}
 
 {% block content %}
-    Profile: {{ request.user }}
+<h1>{{ profile.title }}</h1>
+{% if profile.dob %}
+<p>{% trans "Date of birth" %}: {{ profile.dob }} ({{ profile.age }})</p>
+{% endif %}
+{% if profile.home_page %}
+<p><a href="{{ profile.home_page }}">{% trans "Home page" %}</a></p>
+{% endif %}
 {% endblock %}

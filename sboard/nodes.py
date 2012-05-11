@@ -22,6 +22,7 @@ from .interfaces import INode
 from .interfaces import INodeView
 from .interfaces import IRoot
 from .interfaces import ITagsChange
+from .models import BaseNode
 from .models import Node
 from .models import Tag
 from .models import TagsChange
@@ -73,7 +74,7 @@ class NodeView(object):
     templates = {}
 
     def __init__(self, node_or_factory=None):
-        if isinstance(node_or_factory, Node):
+        if isinstance(node_or_factory, BaseNode):
             self.node = node_or_factory
         else:
             self.node = None

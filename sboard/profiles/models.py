@@ -1,3 +1,5 @@
+import datetime
+
 from zope.interface import implements
 
 from django.contrib.auth.models import User
@@ -9,6 +11,7 @@ from couchdbkit.ext.django import schema
 
 from sboard.factory import provideNode
 from sboard.models import BaseNode
+from sboard.models import couch
 
 from .interfaces import IProfile
 from .interfaces import IGroup
@@ -36,6 +39,7 @@ class Profile(models.Model):
     user = models.OneToOneField(User, verbose_name=_('User'))
     karma = models.IntegerField(_('Karma'), default=0, choices=KARMA_CHOICES)
     name = models.CharField(_('Name'), max_length=255)
+    node = models.CharField(_('Profile node ID'), max_length=20)
 
     objects = ProfileManager()
 
@@ -46,10 +50,17 @@ class Profile(models.Model):
     def __unicode__(self):
         return self.name
 
+    def get_node(self):
+        return couch.get(self.node)
+
 
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
-        Profile.objects.create(user=instance)
+        node = ProfileNode()
+        node._id = node.get_new_id()
+        profile = Profile.objects.create(user=instance, node=node._id)
+        node.uid = profile.pk
+        node.save()
 
 post_save.connect(create_user_profile, sender=User)
 
@@ -71,6 +82,22 @@ class ProfileNode(BaseNode):
 
     dob = schema.StringProperty()
     home_page = schema.StringProperty()
+
+    def age(self):
+        if not self.dob:
+            return None
+        # source: http://stackoverflow.com/questions/2217488/age-from-birthdate-in-python
+        today = datetime.date.today()
+        born = datetime.datetime.strptime(self.dob, '%Y-%m-%d').date()
+        try: # raised when birth date is February 29 and the current year is
+             # not a leap year
+            birthday = born.replace(year=today.year)
+        except ValueError:
+            birthday = born.replace(year=today.year, day=born.day-1)
+        if birthday > today:
+            return today.year - born.year - 1
+        else:
+            return today.year - born.year
 
 provideNode(ProfileNode, "profile")
 

@@ -173,6 +173,9 @@ class BaseNode(schema.Document):
     def permalink(self):
         return reverse('node', args=[self.get_slug()])
 
+    def get_new_id(self):
+        return UniqueKey.objects.create().key
+
 
 class Node(BaseNode):
     implements(INode)
@@ -244,9 +247,6 @@ class Node(BaseNode):
             startkey=[self.get_id, '0000-00-00T00:00:00'],
             endkey=[self.get_id, '9999-99-99T99:99:99'],
         )
-
-    def get_new_id(self):
-        return UniqueKey.objects.create().key
 
     def has_parent(self):
         # TODO: this method is not needed any more in favor of self.parent

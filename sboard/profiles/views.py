@@ -1,10 +1,10 @@
 from django.conf import settings
+from django.shortcuts import redirect
 from django.shortcuts import render
 
 
 def profile(request):
-    template = 'sboard/profile.html'
-    return render(request, template)
+    return redirect(request.user.get_profile().get_node().permalink())
 
 
 def login(request):
