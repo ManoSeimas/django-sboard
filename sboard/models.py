@@ -165,6 +165,12 @@ class BaseNode(schema.Document):
             cls._db = db
         return db
 
+    def get_slug(self):
+        return self.slug or self._id
+
+    def permalink(self):
+        return reverse('node', args=[self.get_slug()])
+
 
 class Node(BaseNode):
     implements(INode)
@@ -215,9 +221,6 @@ class Node(BaseNode):
     def __init__(self, *args, **kwargs):
         self._properties['importance'].default = self._default_importance
         super(Node, self).__init__(*args, **kwargs)
-
-    def get_slug(self):
-        return self.slug or self._id
 
     def get_children(self):
         # TODO: here each returned document must be mapped to model specified
@@ -299,9 +302,6 @@ class Node(BaseNode):
         # text/restructured
         return markup.restructuredtext(self.get_body())
     render_body.is_safe = True
-
-    def permalink(self):
-        return reverse('node', args=[self.get_slug()])
 
     def before_save(self, form, node, create=False):
         """This method will be called before saving node.
