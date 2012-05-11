@@ -43,6 +43,8 @@ class DocTypeMap(dict):
             if name not in self:
                 self[name] = factory.node_class
 
+    def __getitem__(self, key):
+        return self.get(key)
 
     def get(self, key, default=None):
         key = key.lower()
