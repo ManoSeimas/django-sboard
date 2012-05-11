@@ -40,14 +40,14 @@ class DocTypeMap(dict):
 
         self.default = getNodeClass("node")
         for name, factory in getNodeFactories():
-            if name not in self:
-                self[name] = factory.node_class
+            doc_type = factory.node_class.__name__
+            if doc_type not in self:
+                self[doc_type] = factory.node_class
 
     def __getitem__(self, key):
         return self.get(key)
 
     def get(self, key, default=None):
-        key = key.lower()
         return super(DocTypeMap, self).get(key, default) or self.default
 
 
