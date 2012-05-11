@@ -145,6 +145,10 @@ class NodeProperty(schema.StringProperty):
 
 
 class BaseNode(schema.Document):
+    def __repr__(self):
+        class_name = self.__class__.__name__
+        return '<%s %s>' % (class_name, self._id)
+
     @classmethod
     def get_db(cls):
         """Returns CouchDB database associated with this model.

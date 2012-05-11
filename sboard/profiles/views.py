@@ -4,7 +4,9 @@ from django.shortcuts import render
 
 
 def profile(request):
-    return redirect(request.user.get_profile().get_node().permalink())
+    profile = request.user.get_profile()
+    node = profile.get_node()
+    return redirect(node.permalink())
 
 
 def login(request):
