@@ -83,6 +83,9 @@ class ProfileNode(BaseNode):
     dob = schema.StringProperty()
     home_page = schema.StringProperty()
 
+    # Profile photo node ID
+    photo = schema.StringProperty()
+
     def age(self):
         if not self.dob:
             return None
