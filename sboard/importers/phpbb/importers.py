@@ -21,7 +21,7 @@ from couchdbkit.exceptions import ResourceNotFound
 from sqlalchemy import (Table, Column, Integer, text, Unicode, UnicodeText)
 
 from sboard.importers.base import MigrationBase, metadata
-from sboard.models import Node, Comment, Media
+from sboard.models import Node, Comment, ImageNode
 
 # Database schema generated using http://pypi.python.org/pypi/sqlautocode
 
@@ -200,11 +200,11 @@ class PhpbbParser(BBCodeParser):
             slug, ext = os.path.splitext(filename)
         ext = ext.lower()
         slug = get_object_id(slug)
-        media = get_object(Media, slug)
+        media = get_object(ImageNode, slug)
         media.ext = ext.lstrip('.')
         media.save()
         f = open(filepath)
-        media.put_attachment(f, 'orig' + ext)
+        media.put_attachment(f, 'file' + ext)
         f.close()
         return slug
 

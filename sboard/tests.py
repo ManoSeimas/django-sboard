@@ -1,3 +1,10 @@
+import StringIO
+import os.path
+import shutil
+import unittest
+
+from mock import patch
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -7,6 +14,7 @@ from django.test import TestCase
 from couchdbkit.exceptions import ResourceNotFound
 from couchdbkit.ext.django import loading
 
+from .models import FileNode
 from .models import couch, BaseNode
 from .profiles.models import Profile
 
@@ -199,3 +207,31 @@ class TestNodeSlug(NodesTestsMixin, TestCase):
         url = reverse('node', args=['not-existing-node'])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
+
+
+class TestFilePath(unittest.TestCase):
+    def setUp(self):
+        self.old_media_root = settings.MEDIA_ROOT
+        settings.MEDIA_ROOT = os.path.join(
+                settings.BUILDOUT_DIR, 'var', 'test-media')
+
+    def tearDown(self):
+        if os.path.exists(settings.MEDIA_ROOT):
+            shutil.rmtree(settings.MEDIA_ROOT)
+        settings.MEDIA_ROOT = self.old_media_root
+
+    @patch.object(FileNode, 'fetch_attachment')
+    def test_file_path(self, fetch_attachment):
+        fetch_attachment.return_value = StringIO.StringIO('content')
+
+        node = FileNode()
+        node._id = '000123'
+        node.ext = 'txt'
+        path = node.path()
+
+        expected_path = os.path.join(
+                settings.MEDIA_ROOT, 'node', '23', '0001.txt')
+        self.assertEqual(path, expected_path)
+        self.assertTrue(os.path.exists(path))
+        with open(path) as f:
+            self.assertEqual(f.read(), 'content')

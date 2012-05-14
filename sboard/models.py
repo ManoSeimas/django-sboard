@@ -1,8 +1,11 @@
 import datetime
 import functools
+import os
+import os.path
 
 from zope.interface import implements
 
+from django.conf import settings
 from django.contrib.markup.templatetags import markup
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
@@ -421,16 +424,43 @@ class TagsChange(History):
 provideNode(TagsChange, "tags-change")
 
 
-class Media(schema.Document):
+class FileNode(Node):
     ext = schema.StringProperty(required=True)
-    author = schema.StringProperty()
-    name = schema.StringProperty()
-    created = schema.DateTimeProperty(default=datetime.datetime.utcnow)
+    mimetype = schema.StringProperty(required=True)
+
+    def path(self):
+        """Returns file path.
+
+        If file is not alreade stored from attachment to file system, then first it
+        will be stored.
+        """
+        prefix = self._id[-2:]
+        suffix = self._id[:-2]
+        name = '%s.%s' % (suffix, self.ext)
+        dirpath = os.path.join(settings.MEDIA_ROOT, 'node', prefix)
+        filepath = os.path.join(dirpath, name)
+        if not os.path.exists(filepath):
+            if not os.path.exists(dirpath):
+                os.makedirs(dirpath)
+            stream = self.fetch_attachment('file.%s' % self.ext, stream=True)
+            f = open(filepath, 'wb')
+            for chunk in stream.read(1024):
+                f.write(chunk)
+            f.close()
+        return filepath
+
+provideNode(FileNode, "file")
+
+
+class ImageNode(FileNode):
+    pass
+
+provideNode(ImageNode, "image")
 
 
 class CustomImage(Image):
     def run(self):
-        media = Media.get(self.arguments[0])
+        media = ImageNode.get(self.arguments[0])
         self.arguments[0] = reverse('media_normal_size',
                                     args=[media._id, media.ext])
         return super(CustomImage, self).run()

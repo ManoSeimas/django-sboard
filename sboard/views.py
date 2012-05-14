@@ -18,7 +18,7 @@ from couchdbkit.exceptions import NoResultFound
 from .factory import INodeFactory
 from .factory import get_search_handlers
 from .interfaces import INodeView
-from .models import Media, couch
+from .models import couch
 from .models import getRootNode
 
 
@@ -69,7 +69,7 @@ def search(request):
 
 
 def render_image(request, slug, ext):
-    media = Media.get(slug)
+    media = couch.get(slug)
     infile = media.fetch_attachment('orig.%s' % ext, stream=True)
 
     infile = StringIO.StringIO(infile.read())
