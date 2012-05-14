@@ -11,6 +11,7 @@ from couchdbkit.ext.django import schema
 
 from sboard.factory import provideNode
 from sboard.models import BaseNode
+from sboard.models import NodeProperty
 from sboard.models import couch
 
 from .interfaces import IProfile
@@ -71,12 +72,6 @@ class ProfileNode(BaseNode):
     # Reference to Django user model.
     uid = schema.IntegerProperty()
 
-    slug = schema.StringProperty()
-    keywords = schema.ListProperty()
-    importance = schema.IntegerProperty()
-
-    title = schema.StringProperty()
-
     first_name = schema.StringProperty()
     last_name = schema.StringProperty()
 
@@ -84,7 +79,7 @@ class ProfileNode(BaseNode):
     home_page = schema.StringProperty()
 
     # Profile photo node ID
-    photo = schema.StringProperty()
+    photo = NodeProperty(required=False)
 
     def age(self):
         if not self.dob:
@@ -108,12 +103,6 @@ provideNode(ProfileNode, "profile")
 class GroupNode(BaseNode):
     implements(IGroup)
 
-    slug = schema.StringProperty()
-    keywords = schema.ListProperty()
-    importance = schema.IntegerProperty()
-
-    title = schema.StringProperty()
-
 provideNode(GroupNode, "group")
 
 
@@ -121,10 +110,10 @@ class MembershipNode(BaseNode):
     implements(IMembership)
 
     # Reference to profile node.
-    profile = schema.StringProperty()
+    profile = NodeProperty()
 
     # Reference to group node.
-    group = schema.StringProperty()
+    group = NodeProperty()
 
     term_from = schema.DateProperty()
     term_to = schema.DateProperty()

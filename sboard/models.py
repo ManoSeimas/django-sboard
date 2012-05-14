@@ -13,6 +13,7 @@ from django.db import models
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 
+from couchdbkit.exceptions import BadValueError 
 from couchdbkit.exceptions import ResourceNotFound
 from couchdbkit.ext.django import schema
 from couchdbkit.ext.django.loading import couchdbkit_handler
@@ -140,14 +141,89 @@ def get_new_id():
     return UniqueKey.objects.create().key
 
 
-class NodeProperty(schema.StringProperty):
+class NodeProperty(schema.Property):
+    def __init__(self, *args, **kwargs):
+        super(NodeProperty, self).__init__(*args, **kwargs)
+        self._node = None
+        self._node_id = None
+
     def validate(self, value, required=True):
-        if isinstance(value, Node):
-            value = value._id
-        return super(NodeProperty, self).validate(value, required)
+        value = super(NodeProperty, self).validate(value, required)
+        if value and not isinstance(value, BaseNode):
+            raise BadValueError(
+                'Property %s must be BaseNode instance, not a %s' % (
+                    self.name, type(value).__name__))
+        return value
+
+    def __set__(self, document_instance, value):
+        super(NodeProperty, self).__set__(document_instance, value)
+        self._node = value
+        if value:
+            self._node_id = value._id
+
+    def to_python(self, value):
+        if not value:
+            return None
+        if self._node_id != value:
+            self._node = couch.get(value)
+            self._node_id = value
+        return self._node
+
+    def to_json(self, value):
+        if value:
+            return value._id
+        else:
+            return None
+
+    data_type = unicode
 
 
 class BaseNode(schema.Document):
+    # Node slug, that is used to get node from human readable url address.
+    slug = schema.StringProperty()
+
+    # Node title.
+    title = schema.StringProperty()
+
+    # Node keywords, used in search.
+    keywords = schema.ListProperty()
+
+    # Shor node summary, mostly used in list, search results, to show small
+    # summary about node.
+    summary = schema.StringProperty()
+
+    # Node creation datetime.
+    created = schema.DateTimeProperty(default=datetime.datetime.utcnow)
+
+    # Immediate node parent.
+    parent = NodeProperty(required=False)
+
+    # List of all node ancestors.
+    # TODO: rename ``parents`` to ``ancestors``
+    parents = schema.ListProperty()
+
+    # Node tags. Each item in this list is reference to a node.
+    tags = schema.ListProperty()
+
+    # Reference to history node (last revision of current node), this attribute
+    # can be None if node was never modified.
+    history = schema.StringProperty()
+
+    # Each node can override this value, tho change default node importance.
+    _default_importance = 5
+
+    # This property specifies node importance. This property is mainly used
+    # when searching nodes. Nodes with bigger importance appears at the top of
+    # search results.
+    #
+    # If importance is 0, then this node will not appear in any list including
+    # search.
+    importance = schema.IntegerProperty()
+
+    permissions = schema.ListProperty()
+
+    _parent = None
+
     def __repr__(self):
         class_name = self.__class__.__name__
         return '<%s %s>' % (class_name, self._id)
@@ -182,57 +258,6 @@ class BaseNode(schema.Document):
 
     def get_new_id(self):
         return UniqueKey.objects.create().key
-
-
-class Node(BaseNode):
-    implements(INode)
-
-    # Node slug, that is used to get node from human readable url address.
-    slug = schema.StringProperty()
-
-    # Node keywords, used in search.
-    keywords = schema.ListProperty()
-
-    # Author, who initially created this node.
-    author = schema.StringProperty()
-
-    # Node title.
-    title = schema.StringProperty()
-
-    # Node creation datetime.
-    created = schema.DateTimeProperty(default=datetime.datetime.utcnow)
-
-    # Node parent.
-    parent = NodeProperty()
-
-    # List of all node ancestors.
-    # TODO: rename ``parents`` to ``ancestors``
-    parents = schema.ListProperty()
-
-    # Node tags. Each item in this list is reference to a node.
-    tags = schema.ListProperty()
-
-    # Reference to history node (last revision of current node), this attribute
-    # can be None if node was never modified.
-    history = schema.StringProperty()
-
-    # Each node can override this value, tho change default node importance.
-    _default_importance = 5
-
-    # This property specifies node importance. This property is mainly used
-    # when searching nodes. Nodes with bigger importance appears at the top of
-    # search results.
-    #
-    # If importance is less than 5, then node will node appear in lists.
-    importance = schema.IntegerProperty()
-
-    permissions = schema.ListProperty()
-
-    _parent = None
-
-    def __init__(self, *args, **kwargs):
-        self._properties['importance'].default = self._default_importance
-        super(Node, self).__init__(*args, **kwargs)
 
     def get_children(self):
         # TODO: here each returned document must be mapped to model specified
@@ -273,13 +298,20 @@ class Node(BaseNode):
         else:
             return []
 
-    def set_parents(self, parent_node):
+    def set_parent(self, parent):
+        self.parent = parent
+        self.set_parents(parent)
+
+    def set_parents(self, parent):
         """Sets ``parents`` property by given parent node."""
-        if parent_node:
-            self.parents = list(parent_node.parents) or []
-            self.parents.append(parent_node._id)
+        if parent:
+            self.parents = list(parent.parents) or []
+            self.parents.append(parent._id)
         else:
             self.parents = []
+
+    def is_root(self):
+        return IRoot.providedBy(self)
 
     def get_title(self):
         return self.title
@@ -290,6 +322,19 @@ class Node(BaseNode):
             return cls.get(id)
         except ResourceNotFound:
             return None
+
+
+
+class Node(BaseNode):
+    implements(INode)
+
+    # Author, who initially created this node.
+    author = schema.StringProperty()
+
+
+    def __init__(self, *args, **kwargs):
+        self._properties['importance'].default = self._default_importance
+        super(Node, self).__init__(*args, **kwargs)
 
     def get_body(self):
         try:
@@ -326,9 +371,6 @@ class Node(BaseNode):
         This method does same as before_save, except is called on parent node.
         """
         pass
-
-    def is_root(self):
-        return IRoot.providedBy(self)
 
 
 provideNode(Node, "node")
@@ -426,7 +468,6 @@ provideNode(TagsChange, "tags-change")
 
 class FileNode(Node):
     ext = schema.StringProperty(required=True)
-    mimetype = schema.StringProperty(required=True)
 
     def path(self):
         """Returns file path.
