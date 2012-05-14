@@ -69,8 +69,8 @@ def search(request):
 
 
 def render_image(request, slug, ext):
-    media = couch.get(slug)
-    infile = media.fetch_attachment('orig.%s' % ext, stream=True)
+    node = couch.get(slug)
+    infile = node.fetch_attachment('file.%s' % node.ext, stream=True)
 
     infile = StringIO.StringIO(infile.read())
     image = Image.open(infile)
