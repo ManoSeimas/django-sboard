@@ -28,7 +28,7 @@ def get_node(slug=None, action='', name=''):
         except MultipleResultsFound:
             return query
         except NoResultFound:
-            raise None
+            return None
 
 
 def get_node_view(node, slug=None, action='', name=''):
@@ -63,13 +63,21 @@ class NodeDebugPanel(DebugPanel):
     def process_view(self, request, view_func, view_args, view_kwargs):
         if view_func is node_view:
             node = get_node(*view_args, **view_kwargs)
-            view = get_node_view(node, *view_args, **view_kwargs)
+            if node:
+                view = get_node_view(node, *view_args, **view_kwargs)
+            else:
+                view = None
 
-            self.record_stats({
+            context = {
                 'view': view,
                 'node': node,
-                'doc': pprint.pformat(node._doc),
-            })
+                'doc': None,
+            }
+
+            if node:
+                context['doc'] = pprint.pformat(node._doc)
+
+            self.record_stats(context)
             self.has_content = True
         else:
             self.has_content = False
