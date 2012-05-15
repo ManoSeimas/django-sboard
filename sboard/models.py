@@ -86,7 +86,7 @@ class SboardCouchViews(object):
 
     def wrap(self, data):
         # TODO: change doc_type to node_type
-        cls = self.get_doc_type_map().get(data['doc_type'].lower())
+        cls = self.get_doc_type_map().get(data['doc_type'])
         return cls.wrap(data)
 
     def get(self, docid, rev=None):
