@@ -141,33 +141,54 @@ def get_new_id():
     return UniqueKey.objects.create().key
 
 
+class NodeRef(object):
+    def __init__(self):
+        self._id = None
+        self._node = None
+
+    def _set_id(self, id):
+        """Update NodeRef by given node ID."""
+        if self._id != id:
+            self._id = id
+            self._node = None
+
+    def _set_node(self, node):
+        """Update NodeRef by given node instance."""
+        self._id = node._id
+        self._node = node
+
+    @property
+    def ref(self):
+        """Get node by this reference."""
+        if self._node is None:
+            self._node = couch.get(self._id)
+        return self._node
+
+
 class NodeProperty(schema.Property):
     def __init__(self, *args, **kwargs):
+        self._ref = NodeRef()
         super(NodeProperty, self).__init__(*args, **kwargs)
-        self._node = None
-        self._node_id = None
 
     def validate(self, value, required=True):
         value = super(NodeProperty, self).validate(value, required)
-        if value and not isinstance(value, BaseNode):
+        if value and not isinstance(value, (NodeRef, BaseNode)):
             raise BadValueError(
                 'Property %s must be BaseNode instance, not a %s' % (
                     self.name, type(value).__name__))
         return value
 
     def __set__(self, document_instance, value):
+        if isinstance(value, BaseNode):
+            self._ref._set_node(value)
+            value = self._ref
         super(NodeProperty, self).__set__(document_instance, value)
-        self._node = value
-        if value:
-            self._node_id = value._id
 
     def to_python(self, value):
         if not value:
             return None
-        if self._node_id != value:
-            self._node = couch.get(value)
-            self._node_id = value
-        return self._node
+        self._ref._set_id(value)
+        return self._ref
 
     def to_json(self, value):
         if value:

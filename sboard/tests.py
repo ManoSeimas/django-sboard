@@ -14,8 +14,12 @@ from django.test import TestCase
 from couchdbkit.exceptions import ResourceNotFound
 from couchdbkit.ext.django import loading
 
+from .factory import provideNode
+from .models import BaseNode
 from .models import FileNode
-from .models import couch, BaseNode
+from .models import Node
+from .models import NodeProperty
+from .models import couch
 from .profiles.models import Profile
 
 
@@ -235,3 +239,47 @@ class TestFilePath(unittest.TestCase):
         self.assertTrue(os.path.exists(path))
         with open(path) as f:
             self.assertEqual(f.read(), 'content')
+
+
+class FakeNodeWithRef(BaseNode):
+    photo = NodeProperty()
+
+provideNode(FakeNodeWithRef, "fake-node-with-ref")
+
+
+class TestNodeRef(unittest.TestCase):
+    @patch('sboard.models.couch')
+    def test_ref(self, couch_mock):
+        ref = Node()
+        ref._id = 'photo'
+        ref.title = 'ref title'
+        couch_mock.get.return_value = ref
+
+        # Create node with photo reference attribute
+        node = couch.wrap({
+            '_id': 'fake',
+            'doc_type': 'FakeNodeWithRef',
+            'photo': 'photo',
+        })
+
+        self.assertEqual(node._id, 'fake')
+        self.assertEqual(node.photo._id, 'photo')
+        self.assertEqual(couch_mock.get.call_count, 0)
+
+        self.assertEqual(node.photo.ref.title, 'ref title')
+        self.assertEqual(couch_mock.get.call_count, 1)
+
+        # Assign other reference to photo attribute.
+        newref = Node()
+        newref._id = 'new'
+        newref.title = 'new ref'
+        node.photo = newref
+
+        self.assertEqual(node.photo._id, 'new')
+        self.assertEqual(node.photo.ref.title, 'new ref')
+        self.assertEqual(couch_mock.get.call_count, 1)
+
+        # Check how comparison works.
+        self.assertTrue(node.photo)
+        node.photo = None
+        self.assertFalse(node.photo)
