@@ -469,7 +469,7 @@ provideNode(TagsChange, "tags-change")
 class FileNode(Node):
     ext = schema.StringProperty(required=True)
 
-    def path(self):
+    def path(self, fetch=True):
         """Returns file path.
 
         If file is not alreade stored from attachment to file system, then first it
@@ -483,11 +483,12 @@ class FileNode(Node):
         if not os.path.exists(filepath):
             if not os.path.exists(dirpath):
                 os.makedirs(dirpath)
-            stream = self.fetch_attachment('file.%s' % self.ext, stream=True)
-            f = open(filepath, 'wb')
-            for chunk in stream.read(1024):
-                f.write(chunk)
-            f.close()
+            if fetch:
+                stream = self.fetch_attachment('file.%s' % self.ext, stream=True)
+                f = open(filepath, 'wb')
+                for chunk in stream.read(1024):
+                    f.write(chunk)
+                f.close()
         return filepath
 
 provideNode(FileNode, "file")
