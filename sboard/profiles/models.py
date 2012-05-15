@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 
 from zope.interface import implements
 
@@ -8,6 +9,8 @@ from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy as _
 
 from couchdbkit.ext.django import schema
+
+from sorl.thumbnail import get_thumbnail
 
 from sboard.factory import provideNode
 from sboard.models import BaseNode
@@ -96,6 +99,30 @@ class ProfileNode(BaseNode):
             return today.year - born.year - 1
         else:
             return today.year - born.year
+
+    def private(self):
+        return Profile.objects.get(user=self.uid)
+
+    def user(self):
+        return User.objects.get(pk=self.uid)
+
+    def avatar_url(self, size=40):
+        if self.photo:
+            path = self.photo.ref.path()
+            geom = '%d' % size
+            im = get_thumbnail(path, geom, upscale=False)
+            url = im.url
+        elif self.user().email:
+            email = self.user().email.lower()
+            key = hashlib.md5(email).hexdigest()
+            url = 'http://www.gravatar.com/avatar/%s?s=%s' % (key, size)
+        else:
+            key = '0' * 32
+            url = 'http://www.gravatar.com/avatar/%s?s=%s' % (key, size)
+        return url
+
+    def avatar_url_big(self):
+        return self.avatar_url(135)
 
 provideNode(ProfileNode, "profile")
 

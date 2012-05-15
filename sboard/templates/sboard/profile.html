@@ -10,11 +10,5 @@
 {% if profile.home_page %}
 <p><a href="{{ profile.home_page }}">{% trans "Home page" %}</a></p>
 {% endif %}
-{% if profile.photo %}
-<p>
-    {% thumbnail profile.photo.ref.path "150" upscale=0 as im %}
-    <img src="{{ im.url }}" >
-    {% endthumbnail %}
-</p>
-{% endif %}
+<p><img src="{{ profile.avatar_url_big }}" /></p>
 {% endblock %}
