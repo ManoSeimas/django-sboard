@@ -164,6 +164,10 @@ class NodeRef(object):
             self._node = couch.get(self._id)
         return self._node
 
+    @property
+    def key(self):
+        return self._id
+
 
 class NodeProperty(schema.Property):
     def __init__(self, *args, **kwargs):
@@ -248,6 +252,10 @@ class BaseNode(schema.Document):
     def __repr__(self):
         class_name = self.__class__.__name__
         return '<%s %s>' % (class_name, self._id)
+
+    @property
+    def key(self):
+        return self._id
 
     @classmethod
     def get_db(cls):
