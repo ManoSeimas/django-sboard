@@ -1,6 +1,6 @@
 from django.conf.urls.defaults import patterns, url, include
 
-slug = r'[a-z0-9~-]+'
+slug = r'[a-z0-9~+-]+'
 
 node = patterns('sboard.views',
     url(r'^$', 'node', name='node'),

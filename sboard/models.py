@@ -203,9 +203,20 @@ class NodeProperty(schema.Property):
     data_type = unicode
 
 
+def set_nodes_ambiguous(nodes):
+    """Sets all nodes as ambiguous if not set already."""
+    for node in nodes:
+        if not node.ambiguous:
+            node.ambiguous = True
+            node.save()
+
+
 class BaseNode(schema.Document):
     # Node slug, that is used to get node from human readable url address.
     slug = schema.StringProperty()
+
+    # If True, tells that there is more than one node with this same slug.
+    ambiguous = schema.BooleanProperty(default=False)
 
     # Node title.
     title = schema.StringProperty()
@@ -282,8 +293,14 @@ class BaseNode(schema.Document):
     def get_slug(self):
         return self.slug or self._id
 
-    def permalink(self):
-        return reverse('node', args=[self.get_slug()])
+    def urlslug(self):
+        if self.ambiguous and self.slug:
+            return '%s+%s' % (self.slug, self._id)
+        else:
+            return self.get_slug()
+
+    def permalink(self, *args):
+        return reverse('node', args=(self.urlslug(),) + args)
 
     def get_new_id(self):
         return UniqueKey.objects.create().key

@@ -4,7 +4,9 @@ Node models
 Node views
 ==========
 
-Example node view::
+Example node view:
+
+.. code:: python
 
     # nodes.py
 
@@ -31,3 +33,53 @@ Example node view::
     in this case (ICategory,). This parameter does axactly the same ting as
     adapts(ICategory).
     provideAdapter(DetailsView, (ICategory,), name="details")
+
+
+Node URLs
+=========
+
+Each node has unique key and may have not unique slug. If node does not have
+specified slug, then node URL will be constructed from unique key::
+
+    0002ar
+
+If node has slug, then slug is unique, then URL will be constructed using that
+slug::
+
+    some-slug-string
+
+If node slug is not unique across all nodes, then URL will be constructed from
+slug and key::
+
+    some-slug-string+0002ar
+
+We know that slug is not unique from node property ``ambiguous``, if this
+property is set to ``True`` it means, that slug of this node is not unique.
+
+Each node can be accessed directly, just providing direct node URL, described
+above and with specified action and action name (or action argument).
+Examples::
+
+    /some-slug-string/
+    /some-slug-string/update/
+    /some-slug-string/create/comment/
+
+You can get node URL using ``permalink`` method or ``nodeurl`` template tag.
+
+In python files:
+
+.. code:: python
+
+    node.permalink()
+    node.permalink('update')
+    node.permalink('create', 'comment')
+
+In templates:
+
+.. code:: html
+
+    {% load sboard %}
+
+    <a href="{{ node.permalink }}">{{ node.title }}</a>
+    <a href="{% nodeurl node 'update' %}">Edit</a>
+    <a href="{% nodeurl node 'create' 'comment' %}">Create comment</a>

@@ -116,10 +116,7 @@ class NodeView(object):
         links = []
         for name, factory in getNodeFactories():
             if self.can('create', factory):
-                slug = '~'
-                if self.node:
-                    slug = self.node.get_slug()
-                link = reverse('node', args=(slug, 'create', name))
+                link = self.node.permalink('create', name)
                 links.append((link, name))
         return links
 
@@ -127,8 +124,7 @@ class NodeView(object):
         links = []
         for name, factory in getNodeFactories():
             if self.can('create', factory):
-                args = (self.node.get_slug(), 'convert', name)
-                link = reverse('node', args=args)
+                link = self.node.permalink('convert', name)
                 links.append((link, name))
         return links
 
@@ -143,8 +139,7 @@ class NodeView(object):
     def list_actions(self):
         actions = []
         if self.node and self.can('update'):
-            link = reverse('node', args=[self.node.get_slug(), 'update'])
-            actions.append((link, _('Edit'), None))
+            actions.append((self.node.permalink('update'), _('Edit'), None))
 
         create_links = self.get_create_links()
         if create_links:
@@ -155,7 +150,7 @@ class NodeView(object):
     def details_actions(self):
         actions = []
         if self.node:
-            link = reverse('node', args=[self.node.get_slug(), 'update'])
+            link = self.node.permalink('update')
             actions.append((link, _('Edit'), None))
 
         actions.append((None, _('Convert to'),

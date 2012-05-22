@@ -12,6 +12,7 @@ from zope.component import getUtility
 from django.http import Http404
 from django.http import HttpResponse
 
+from couchdbkit.client import ViewResults
 from couchdbkit.exceptions import MultipleResultsFound
 from couchdbkit.exceptions import NoResultFound
 
@@ -20,31 +21,63 @@ from .factory import get_search_handlers
 from .interfaces import INodeView
 from .models import couch
 from .models import getRootNode
+from .models import set_nodes_ambiguous
+
+
+def get_node(request, slug=None, action='', name=''):
+    key = None
+    if slug and '+' in slug:
+        slug, key = slug.split('+')
+
+    if key:
+        try:
+            return couch.get(key)
+        except NoResultFound:
+            return None
+
+    if slug is None or slug == '~':
+        return getRootNode()
+
+    query = couch.by_slug(key=slug, limit=20)
+    try:
+        return query.one(except_all=True)
+    except MultipleResultsFound:
+        return query
+    except NoResultFound:
+        return None
 
 
 def node(request, slug=None, action='', name=''):
-    if slug is None or slug == '~':
-        node = getRootNode()
-    else:
-        query = couch.by_slug(key=slug, limit=20)
-        try:
-            node = query.one(True)
-        except MultipleResultsFound:
-            return duplicate_slug_nodes(request, query)
-        except NoResultFound:
-            raise Http404
+    node = get_node(request, slug, action, name)
+
+    if node is None:
+        raise Http404
+    elif isinstance(node, ViewResults):
+        return duplicate_slug_nodes(request, node)
 
     if name:
+        # /node/factory/action
+        # /node/factory/str/
+        # /node/str/action/
+        # /node/str/str/
         factory = getUtility(INodeFactory, name)
         view = getMultiAdapter((node, factory), INodeView, action)
+        #view = getAdapter((node, factory), INodeView, action)
+        #view = getAdapter((node, factory, action), INodeView)
+        #view = getAdapter((node, name), INodeView, action)
+        #view = getAdapter((node, action, name), INodeView)
     else:
+        # /node/action/
+        # /node/str/
         view = getAdapter(node, INodeView, action)
+        #view = getAdapter((node, action), INodeView)
 
     view.request = request
     return view.render()
 
 
 def duplicate_slug_nodes(request, nodes):
+    set_nodes_ambiguous(nodes)
     node = getRootNode()
     view = getAdapter(node, INodeView, 'list')
     view.request = request
