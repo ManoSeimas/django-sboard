@@ -159,7 +159,7 @@ class NodeView(object):
         return actions
 
     def get_form(self, *args, **kwargs):
-        if self.node:
+        if self.node and not self.node.is_root():
             kwargs['initial'] = {'parent': self.node._id}
         return self.form(*args, **kwargs)
 
@@ -284,6 +284,7 @@ class CreateView(NodeView):
 
         return render(self.request, 'sboard/node_form.html', {
               'form': form,
+              'actions': self.list_actions(),
           })
 
 provideAdapter(CreateView, name="create")
