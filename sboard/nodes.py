@@ -5,7 +5,6 @@ from zope.component import adapts
 from zope.component import provideAdapter
 from zope.interface import implements
 
-from django.core.urlresolvers import reverse
 from django.http import Http404
 from django.shortcuts import redirect
 from django.shortcuts import render
