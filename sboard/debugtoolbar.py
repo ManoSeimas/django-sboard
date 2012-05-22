@@ -8,6 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from debug_toolbar.panels import DebugPanel
 
+from couchdbkit.client import ViewResults
 from couchdbkit.exceptions import MultipleResultsFound
 from couchdbkit.exceptions import NoResultFound
 
@@ -18,15 +19,21 @@ from .models import getRootNode
 from .views import node as node_view
 
 
-def get_node(slug=None, action='', name=''):
-    if slug is None or slug == '~':
+def get_node(request, slug=None, action='', name=''):
+    key = request.GET.get('key')
+    if key:
+        try:
+            return couch.get(key)
+        except NoResultFound:
+            return None
+    elif slug is None or slug == '~':
         return getRootNode()
     else:
         query = couch.by_slug(key=slug, limit=20)
         try:
             return query.one(True)
         except MultipleResultsFound:
-            return query
+            return getRootNode()
         except NoResultFound:
             return None
 
@@ -62,11 +69,15 @@ class NodeDebugPanel(DebugPanel):
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         if view_func is node_view:
-            node = get_node(*view_args, **view_kwargs)
-            if node:
-                view = get_node_view(node, *view_args, **view_kwargs)
-            else:
+            node = get_node(request, *view_args, **view_kwargs)
+
+            if node is None:
                 view = None
+            elif isinstance(node, ViewResults):
+                node = getRootNode()
+                view = get_node_view(node, action='list')
+            else:
+                view = get_node_view(node, *view_args, **view_kwargs)
 
             context = {
                 'view': view,
