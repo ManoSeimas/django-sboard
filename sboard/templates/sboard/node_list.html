@@ -15,13 +15,14 @@
   {% endif %}
 {% endblock %}
 
-{% block content %}
-  <div class="row">
-    <ul class="nav nav-pills pull-right">
-      {% include "sboard/actions.html" %}
-    </ul>
-  </div>
 
+{% block sidebar-items %}
+  <li class="nav-header">Sprendimai</li>
+  <li><a href="{% url node "testas" %}">{% trans "Testas" %}</a></li>
+{% endblock %}
+
+
+{% block content %}
   {% if children %}
     {% for child in children %}
     <div class="list-entry">

@@ -111,22 +111,6 @@ class NodeView(object):
         permissions = self.get_permissions()
         return permissions.can(self.request, action, factory.name)
 
-    def get_create_links(self):
-        links = []
-        for name, factory in getNodeFactories():
-            if self.can('create', factory):
-                link = self.node.permalink('create', name)
-                links.append((link, name))
-        return links
-
-    def get_convert_to_links(self):
-        links = []
-        for name, factory in getNodeFactories():
-            if self.can('create', factory):
-                link = self.node.permalink('convert', name)
-                links.append((link, name))
-        return links
-
     def get_node_list(self):
         if self.node:
             key = self.node._id
@@ -135,53 +119,93 @@ class NodeView(object):
         else:
             return couch.all_nodes(descending=True, limit=50)
 
-    def list_actions(self):
-        actions = []
-        if self.node and self.can('update'):
-            actions.append((self.node.permalink('update'), _('Edit'), None))
-
-        create_links = self.get_create_links()
-        if create_links:
-            actions.append((None, _('Create new entry'), create_links))
-
-        return actions
-
-    def details_actions(self):
-        actions = []
-        if self.node:
-            link = self.node.permalink('update')
-            actions.append((link, _('Edit'), None))
-
-        actions.append((None, _('Convert to'),
-                       self.get_convert_to_links()))
-
-        return actions
-
     def get_form(self, *args, **kwargs):
-        if self.node and not self.node.is_root():
-            kwargs['initial'] = {'parent': self.node._id}
-        return self.form(*args, **kwargs)
+        return self.form(self.node, *args, **kwargs)
 
-    def form_save(self, form, create):
-        node = form.save(commit=False)
-        if create:
+    def form_save(self, form, node=None):
+        create = node is None
+        data = form.cleaned_data
+
+        if node is None:
+            node = self.factory()
             node._id = node.get_new_id()
-        else:
-            # TODO: create history entry
-            pass
+
+        parent = data.pop('parent', None) or self.node
+
+        for key, val in data.items():
+            setattr(node, key, val)
+
         node.slug = slugify(node.title)
+
         # XXX: actualy parent is always known from self.node, some here more
         # strict checking must be implemented. Only privileged users should be
         # able to change node parent, since this is expensive operation...
-        parent = form.cleaned_data.get('parent')
         if parent:
-            node.parent = parent._id
+            node.parent = parent
             node.set_parents(parent)
+
         if self.node:
             self.node.before_child_save(form, node, create=create)
+
         node.before_save(form, node, create=create)
         node.save()
         return node
+
+    def get_create_links(self, active=tuple()):
+        nav = []
+        if self.node:
+            for name, factory in getNodeFactories():
+                if self.can('create', factory):
+                    nav.append({
+                        'key': name,
+                        'url': self.node.permalink('create', name),
+                        'title': name,
+                        'children': [],
+                        'active': name in active,
+                    })
+        return nav
+
+    def get_convert_to_links(self, active=tuple()):
+        nav = []
+        for name, factory in getNodeFactories():
+            if self.can('create', factory):
+                nav.append({
+                    'key': name,
+                    'url': self.node.permalink('convert', name),
+                    'title': name,
+                    'children': [],
+                    'active': name in active,
+                })
+        return nav
+
+    def nav(self, active=tuple()):
+        nav = []
+
+        # Edit
+        if self.node and self.can('update'):
+            key = 'update'
+            link = self.node.permalink('update')
+            nav.append({
+                'key': key,
+                'url': link,
+                'title': _('Edit'),
+                'children': [],
+                'active': key in active,
+            })
+
+        # Create
+        create_links = self.get_create_links()
+        if create_links:
+            key = 'create'
+            nav.append({
+                'key': key,
+                'url': '#',
+                'title': _('New entry'),
+                'children': create_links,
+                'active': key in active,
+            })
+
+        return nav
 
 
 class ListView(NodeView):
@@ -199,7 +223,6 @@ class ListView(NodeView):
             'view': self,
             'node': self.node,
             'children': node_list,
-            'actions': self.list_actions(),
         }
         context.update(overrides or {})
         return render(self.request, template, context)
@@ -242,7 +265,6 @@ class DetailsView(NodeView):
             'view': self,
             'node': self.node,
             'comments': comments,
-            'actions': self.details_actions(),
         }
         context.update(overrides)
 
@@ -250,7 +272,7 @@ class DetailsView(NodeView):
             context['tag_form'] = TagForm(self.node)
 
         if 'comment_form' not in context:
-            context['comment_form'] = CommentForm()
+            context['comment_form'] = CommentForm(self.node)
 
         return render(self.request, template, context)
 
@@ -266,6 +288,10 @@ class CreateView(NodeView):
         self.node = node
         self.factory = factory
 
+    def nav(self, active=tuple()):
+        active = active or ('create',)
+        return super(CreateView, self).nav(active)
+
     def render(self):
         if not self.can('create', self.factory):
             return render(self.request, '403.html', status=403)
@@ -273,7 +299,7 @@ class CreateView(NodeView):
         if self.request.method == 'POST':
             form = self.get_form(self.request.POST)
             if form.is_valid():
-                child = self.form_save(form, create=True)
+                child = self.form_save(form)
                 if self.node:
                     return redirect(self.node.permalink())
                 else:
@@ -283,28 +309,32 @@ class CreateView(NodeView):
 
         return render(self.request, 'sboard/node_form.html', {
               'form': form,
-              'actions': self.list_actions(),
+              'view': self,
           })
 
 provideAdapter(CreateView, name="create")
 
 
 class UpdateView(NodeView):
+    def nav(self, active=tuple()):
+        active = active or ('update',)
+        return super(UpdateView, self).nav(active)
+
     def render(self):
         if not self.can('update'):
             return render(self.request, '403.html', status=403)
 
         if self.request.method == 'POST':
-            form = self.form(self.request.POST, instance=self.node)
+            form = self.get_form(self.request.POST)
             if form.is_valid():
-                node = self.form_save(form, create=False)
+                node = self.form_save(form, self.node)
                 return redirect(node.permalink())
         else:
-            form = self.form(instance=self.node,
-                             initial={'body': self.node.get_body()})
+            form = self.get_form()
 
         return render(self.request, 'sboard/node_form.html', {
               'form': form,
+              'view': self,
           })
 
 provideAdapter(UpdateView, name="update")
@@ -316,14 +346,12 @@ class ConvertView(NodeView):
             doc = dict(self.node._doc)
             doc.pop('doc_type')
             node = self.model.wrap(doc)
-            form = self.form(self.request.POST, instance=node)
+            form = self.form(self.node, self.request.POST)
             if form.is_valid():
-                node = self.form_save(form, create=False)
+                node = self.form_save(form, node)
                 return redirect(node.permalink())
         else:
-            initial = dict(self.node._doc)
-            initial['body'] = self.node.get_body()
-            form = self.form(instance=self.node, initial=initial)
+            form = self.form(self.node)
 
         return render(self.request, 'sboard/node_form.html', {
               'form': form,

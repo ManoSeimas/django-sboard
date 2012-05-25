@@ -14,12 +14,16 @@
   {% endif %}
 {% endblock %}
 
+
+{% block sidebar-items %}
+  <li class="nav-header">{% trans "Sprendimas" %}</li>
+  <li><a href="#">{% trans "Bendra informacija" %}</a></li>
+  <li class="active"><a href="#">{% trans "Testas" %}</a></li>
+{% endblock %}
+
+
 {% block content %}
-  <div class="row">
-    <ul class="nav nav-pills pull-right">
-      {% include "sboard/actions.html" %}
-    </ul>
-  </div>
+  <h1>{{ node.title }}</h1>
 
   {% block node_body %}
   {{ node.render_body }}

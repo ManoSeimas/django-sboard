@@ -1,27 +1,33 @@
 from django import forms
 
-from couchdbkit.ext.django.forms import DocumentForm
-
 from .fields import NodeField
-from .models import Node, Comment, Tag
 
 
-class NodeForm(DocumentForm):
+class BaseNodeForm(forms.Form):
+    def __init__(self, node, *args, **kwargs):
+        self.node = node
+        if self.node:
+            initial = self.get_initial_values()
+            if 'initial' in kwargs:
+                initial = initial.update(kwargs['initial'])
+            kwargs['initial'] = initial
+        super(BaseNodeForm, self).__init__(*args, **kwargs)
+
+    def get_initial_values(self):
+        initial = dict(self.node._doc)
+        initial['body'] = self.node.get_body()
+        return initial
+
+
+class NodeForm(BaseNodeForm):
     title = forms.CharField()
     parent = NodeField(required=False)
-    body = forms.CharField(widget=forms.Textarea)
-
-    class Meta:
-        document = Node
-        properties = ('title', 'parent', 'body')
+    summary = forms.CharField(widget=forms.Textarea, required=False)
+    body = forms.CharField(widget=forms.Textarea, required=False)
 
 
-class TagForm(forms.Form):
-    tag = forms.SlugField()
-
-    def __init__(self, node, *args, **kwargs):
-        super(TagForm, self).__init__(*args, **kwargs)
-        self.node = node
+class TagForm(BaseNodeForm):
+    tag = NodeField()
 
     def clean_tag(self):
         tag = self.cleaned_data.get('tag')
@@ -31,17 +37,9 @@ class TagForm(forms.Form):
         return tag
 
 
-class TagNodeForm(DocumentForm):
+class TagNodeForm(BaseNodeForm):
     title = forms.CharField(required=True)
 
-    class Meta:
-        document = Tag
-        properties = ('title',)
 
-
-class CommentForm(DocumentForm):
+class CommentForm(BaseNodeForm):
     body = forms.CharField(required=True, widget=forms.Textarea)
-
-    class Meta:
-        document = Comment
-        properties = ('body',)

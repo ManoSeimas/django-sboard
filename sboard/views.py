@@ -1,10 +1,8 @@
 import StringIO
 
-try:
-    from PIL import Image
-except ImportError:
-    import Image
+import Image
 
+from zope.component import ComponentLookupError
 from zope.component import getAdapter
 from zope.component import getMultiAdapter
 from zope.component import getUtility
@@ -13,65 +11,46 @@ from django.http import Http404
 from django.http import HttpResponse
 
 from couchdbkit.client import ViewResults
-from couchdbkit.exceptions import MultipleResultsFound
-from couchdbkit.exceptions import NoResultFound
 
 from .factory import INodeFactory
 from .factory import get_search_handlers
 from .interfaces import INodeView
 from .models import couch
 from .models import getRootNode
+from .models import get_node_by_slug
 from .models import set_nodes_ambiguous
 
 
-def get_node(request, slug=None, action='', name=''):
-    key = None
-    if slug and '+' in slug:
-        slug, key = slug.split('+')
-
-    if key:
+def get_node_view(node, action='', name=''):
+    view = None
+    if name:
         try:
-            return couch.get(key)
-        except NoResultFound:
-            return None
+            factory = getUtility(INodeFactory, name)
+        except ComponentLookupError:
+            # /node/action/name/ - dynamic action, static name
+            view = getMultiAdapter((node, action), INodeView, name)
+        else:
+            # /node/action/factory/ - static action
+            view = getMultiAdapter((node, factory), INodeView, action)
+    else:
+        try:
+            # /node/action/ - static action
+            view = getAdapter(node, INodeView, action)
+        except ComponentLookupError:
+            # /node/action/ - dynamic action
+            view = getMultiAdapter((node, action), INodeView)
 
-    if slug is None or slug == '~':
-        return getRootNode()
-
-    query = couch.by_slug(key=slug, limit=20)
-    try:
-        return query.one(except_all=True)
-    except MultipleResultsFound:
-        return query
-    except NoResultFound:
-        return None
+    return view
 
 
 def node(request, slug=None, action='', name=''):
-    node = get_node(request, slug, action, name)
-
+    node = get_node_by_slug(slug)
     if node is None:
         raise Http404
     elif isinstance(node, ViewResults):
         return duplicate_slug_nodes(request, node)
 
-    if name:
-        # /node/factory/action
-        # /node/factory/str/
-        # /node/str/action/
-        # /node/str/str/
-        factory = getUtility(INodeFactory, name)
-        view = getMultiAdapter((node, factory), INodeView, action)
-        #view = getAdapter((node, factory), INodeView, action)
-        #view = getAdapter((node, factory, action), INodeView)
-        #view = getAdapter((node, name), INodeView, action)
-        #view = getAdapter((node, action, name), INodeView)
-    else:
-        # /node/action/
-        # /node/str/
-        view = getAdapter(node, INodeView, action)
-        #view = getAdapter((node, action), INodeView)
-
+    view = get_node_view(node, action, name)
     view.request = request
     return view.render()
 

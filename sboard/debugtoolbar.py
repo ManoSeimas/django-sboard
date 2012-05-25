@@ -10,19 +10,10 @@ from debug_toolbar.panels import DebugPanel
 
 from couchdbkit.client import ViewResults
 
-from .factory import INodeFactory
-from .interfaces import INodeView
 from .models import getRootNode
-from .views import get_node
+from .models import get_node_by_slug
+from .views import get_node_view
 from .views import node as node_view
-
-
-def get_node_view(node, slug=None, action='', name=''):
-    if name:
-        factory = getUtility(INodeFactory, name)
-        return getMultiAdapter((node, factory), INodeView, action)
-    else:
-        return getAdapter(node, INodeView, action)
 
 
 class NodeDebugPanel(DebugPanel):
@@ -48,7 +39,10 @@ class NodeDebugPanel(DebugPanel):
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         if view_func is node_view:
-            node = get_node(request, *view_args, **view_kwargs)
+            slug = view_kwargs.get('slug', None)
+            if slug is None and view_args:
+                slug = view_args[0]
+            node = get_node_by_slug(slug)
 
             if node is None:
                 view = None
@@ -56,7 +50,9 @@ class NodeDebugPanel(DebugPanel):
                 node = getRootNode()
                 view = get_node_view(node, action='list')
             else:
-                view = get_node_view(node, *view_args, **view_kwargs)
+                action = view_kwargs.get('action', '')
+                name = view_kwargs.get('name', '')
+                view = get_node_view(node, action, name)
 
             context = {
                 'view': view,

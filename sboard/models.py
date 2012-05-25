@@ -14,6 +14,8 @@ from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 
 from couchdbkit.exceptions import BadValueError 
+from couchdbkit.exceptions import MultipleResultsFound
+from couchdbkit.exceptions import NoResultFound
 from couchdbkit.exceptions import ResourceNotFound
 from couchdbkit.ext.django import schema
 from couchdbkit.ext.django.loading import couchdbkit_handler
@@ -139,6 +141,34 @@ class UniqueKey(models.Model):
 
 def get_new_id():
     return UniqueKey.objects.create().key
+
+
+def parse_node_slug(slug):
+    if slug and '+' in slug:
+        return slug.split('+')
+    else:
+        return slug, None
+
+
+def get_node_by_slug(slug=None):
+    """Returns Node instance, None or ViewResults instance."""
+    slug, key = parse_node_slug(slug)
+    if key:
+        try:
+            return couch.get(key)
+        except NoResultFound:
+            return None
+
+    if slug is None or slug == '~':
+        return getRootNode()
+
+    query = couch.by_slug(key=slug, limit=20)
+    try:
+        return query.one(except_all=True)
+    except MultipleResultsFound:
+        return query
+    except NoResultFound:
+        return None
 
 
 class NodeRef(object):

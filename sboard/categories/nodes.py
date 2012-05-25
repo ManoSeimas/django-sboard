@@ -4,14 +4,11 @@ from zope.component import provideAdapter
 from sboard.models import couch
 from sboard.nodes import CreateView
 
-from .forms import CategoryForm
 from .interfaces import ICategory
 
 
 class CategoryCreateView(CreateView):
     adapts(object, ICategory)
-
-    form = CategoryForm
 
     listing = True
 
