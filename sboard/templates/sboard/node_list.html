@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "sboard/base.html" %}
 {% load i18n %}
 
 {% block title %}
@@ -13,12 +13,6 @@
   {% else %}
     {% trans "All nodes" %}
   {% endif %}
-{% endblock %}
-
-
-{% block sidebar-items %}
-  <li class="nav-header">Sprendimai</li>
-  <li><a href="{% url node "testas" %}">{% trans "Testas" %}</a></li>
 {% endblock %}
 
 
