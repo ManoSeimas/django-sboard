@@ -323,9 +323,15 @@ class BaseNode(schema.Document):
     def get_slug(self):
         return self.slug or self._id
 
+    def get_slug_with_key(self):
+        if self.slug:
+            return '%s+%s' % (self.slug, self._id)
+        else:
+            return '+%s' % (self._id,)
+
     def urlslug(self):
         if self.ambiguous and self.slug:
-            return '%s+%s' % (self.slug, self._id)
+            return self.get_slug_with_key()
         else:
             return self.get_slug()
 
