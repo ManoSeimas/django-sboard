@@ -288,6 +288,10 @@ class BaseNode(schema.Document):
 
     permissions = schema.ListProperty()
 
+    # Number that shows how many people likes or dislikes content of this node.
+    likes = schema.IntegerProperty(default=0)
+    dislikes = schema.IntegerProperty(default=0)
+
     _parent = None
 
     def __repr__(self):
@@ -340,6 +344,9 @@ class BaseNode(schema.Document):
 
     def get_new_id(self):
         return UniqueKey.objects.create().key
+
+    def set_new_id(self):
+        self._id = self.get_new_id()
 
     def get_children(self):
         # TODO: here each returned document must be mapped to model specified

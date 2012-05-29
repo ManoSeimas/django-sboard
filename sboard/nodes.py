@@ -70,7 +70,7 @@ class NodeView(object):
     # Used to cache permissions object.
     _permissions = None
 
-    templates = {}
+    template = None
 
     def __init__(self, node_or_factory=None):
         if isinstance(node_or_factory, BaseNode):
@@ -129,27 +129,33 @@ class NodeView(object):
         if node is None:
             node = self.factory()
             node._id = node.get_new_id()
-
-        parent = data.pop('parent', None) or self.node
+            parent = data.pop('parent', None) or self.node
+        else:
+            parent = data.pop('parent', None)
 
         for key, val in data.items():
             setattr(node, key, val)
 
-        node.slug = slugify(node.title)
+        if 'title' in data:
+            node.slug = slugify(node.title)
 
-        # XXX: actualy parent is always known from self.node, some here more
-        # strict checking must be implemented. Only privileged users should be
-        # able to change node parent, since this is expensive operation...
-        if parent:
-            node.parent = parent
-            node.set_parents(parent)
+        if 'parent' in data:
+            # XXX: actualy parent is always known from self.node, some here more
+            # strict checking must be implemented. Only privileged users should be
+            # able to change node parent, since this is expensive operation...
+            if parent:
+                node.parent = parent
+                node.set_parents(parent)
 
         if self.node:
             self.node.before_child_save(form, node, create=create)
 
-        node.before_save(form, node, create=create)
+        self.before_save(form, node, create=create)
         node.save()
         return node
+
+    def before_save(self, form, node, create):
+        pass
 
     def get_create_links(self, active=tuple()):
         nav = []
@@ -211,15 +217,22 @@ class NodeView(object):
 class ListView(NodeView):
     adapts(INode)
 
+    template = 'sboard/node_list.html'
+
     def render(self, **overrides):
         node_list = overrides.pop('node_list', self.get_node_list)
-        template = self.templates.get('list', 'sboard/node_list.html')
-        template = overrides.pop('template', template)
+        template = overrides.pop('template', self.template)
 
         if callable(node_list):
             node_list = node_list()
 
+        if self.node:
+            title = self.node.title
+        else:
+            title = _('All nodes')
+
         context = {
+            'title': title,
             'view': self,
             'node': self.node,
             'children': node_list,
@@ -250,6 +263,8 @@ class SearchView(ListView):
 
 
 class DetailsView(NodeView):
+    template = 'sboard/node_details.html'
+
     def render(self, **overrides):
         # TODO: a hi-tech algorithm needed here, that can take all
         # comment tree, two levels deep and display this tree in one
@@ -257,11 +272,10 @@ class DetailsView(NodeView):
         comments = couch.comments(startkey=[self.node._id, 'Z'],
                                   endkey=[self.node._id], descending=True,
                                   include_docs=True, limit=10)
-
-        template = self.templates.get('details', 'sboard/node_details.html')
-        template = overrides.pop('template', template)
+        template = overrides.pop('template', self.template)
 
         context = {
+            'title': self.node.title,
             'view': self,
             'node': self.node,
             'comments': comments,
@@ -269,10 +283,10 @@ class DetailsView(NodeView):
         context.update(overrides)
 
         if 'tag_form' not in context:
-            context['tag_form'] = TagForm(self.node)
+            context['tag_form'] = TagForm(None)
 
         if 'comment_form' not in context:
-            context['comment_form'] = CommentForm(self.node)
+            context['comment_form'] = CommentForm(None)
 
         return render(self.request, template, context)
 
@@ -287,6 +301,9 @@ class CreateView(NodeView):
     def __init__(self, node, factory):
         self.node = node
         self.factory = factory
+
+    def get_form(self, *args, **kwargs):
+        return self.form(None, *args, **kwargs)
 
     def nav(self, active=tuple()):
         active = active or ('create',)
@@ -308,6 +325,7 @@ class CreateView(NodeView):
             form = self.get_form()
 
         return render(self.request, 'sboard/node_form.html', {
+              'title': _('Create new entry'),
               'form': form,
               'view': self,
           })
@@ -333,6 +351,7 @@ class UpdateView(NodeView):
             form = self.get_form()
 
         return render(self.request, 'sboard/node_form.html', {
+              'title': self.node.title,
               'form': form,
               'view': self,
           })
@@ -354,6 +373,7 @@ class ConvertView(NodeView):
             form = self.form(self.node)
 
         return render(self.request, 'sboard/node_form.html', {
+              'title': self.node.title,
               'form': form,
           })
 

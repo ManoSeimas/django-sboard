@@ -1,21 +1,6 @@
 {% extends "sboard/base.html" %}
 {% load i18n %}
 
-{% block title %}
-  {% if node %}
-    {% if not node.title and node.has_parent %}
-      <a href="{{ node.get_parent.permalink }}">
-        {{ node.get_parent.title }}
-      </a>
-    {% else %}
-      {{ node.title }}
-    {% endif %}
-  {% else %}
-    {% trans "All nodes" %}
-  {% endif %}
-{% endblock %}
-
-
 {% block content %}
   {% if children %}
     {% for child in children %}
