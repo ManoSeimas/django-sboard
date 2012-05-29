@@ -9,10 +9,10 @@ from .interfaces import IProfile
 
 class ProfileView(NodeView):
     adapts(IProfile)
+    template = 'sboard/profile.html'
 
     def render(self, **overrides):
-        template = self.templates.get('profile', 'sboard/profile.html')
-        template = overrides.pop('template', template)
+        template = overrides.pop('template', self.template)
 
         context = {
             'view': self,
