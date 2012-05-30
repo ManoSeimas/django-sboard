@@ -1,0 +1,26 @@
+{% extends "sboard/base.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+
+  {% if children %}
+    {% for child in children %}
+    <div class="list-entry">
+      [{{ child.term_from|date:"SHORT_DATE_FORMAT" }} -
+      {% if child.term_to %}
+      {{ child.term_to|date:"SHORT_DATE_FORMAT" }}
+      {% else %}
+      {% trans "dabar" %}
+      {% endif %}]
+      <a href="{{ child.profile.ref.permalink }}">{{ child.profile.ref.title }}</a>
+      {% if child.position %}
+      ({{ child.position }})
+      {% endif %}
+      <hr />
+    </div>
+    {% endfor %}
+  {% else %}
+    <p>{% trans "This groups does not have any members." %}</p>
+  {% endif %}
+{% endblock %}

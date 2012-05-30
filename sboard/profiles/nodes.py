@@ -3,8 +3,12 @@ from zope.component import provideAdapter
 
 from django.shortcuts import render
 
-from ..nodes import NodeView
+from sboard.nodes import ListView
+from sboard.nodes import NodeView
+
+from .interfaces import IGroup
 from .interfaces import IProfile
+from .models import query_group_membership
 
 
 class ProfileView(NodeView):
@@ -23,3 +27,13 @@ class ProfileView(NodeView):
         return render(self.request, template, context)
 
 provideAdapter(ProfileView)
+
+
+class GroupView(ListView):
+    adapts(IGroup)
+    template = 'sboard/group_members.html'
+
+    def get_node_list(self):
+        return query_group_membership(self.node._id)
+
+provideAdapter(GroupView)

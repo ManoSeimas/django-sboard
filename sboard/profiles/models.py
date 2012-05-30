@@ -150,3 +150,15 @@ class MembershipNode(BaseNode):
     _default_importance = 0
 
 provideNode(MembershipNode, "membership")
+
+
+def query_group_membership(group_id):
+    kwargs = dict(
+        startkey=[group_id],
+        endkey=[group_id, u'\ufff0']
+    )
+    query = couch.view('profiles/group_members', **kwargs).iterator()
+    for node in query:
+        profile = next(query)
+        node.profile = profile
+        yield node
