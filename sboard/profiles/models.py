@@ -147,4 +147,6 @@ class MembershipNode(BaseNode):
 
     position = schema.StringProperty()
 
+    _default_importance = 0
+
 provideNode(MembershipNode, "membership")

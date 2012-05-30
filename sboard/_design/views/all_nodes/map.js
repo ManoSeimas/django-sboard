@@ -1,5 +1,5 @@
 function(doc) {
-    if (doc.importance && doc.importance >= 5) {
+    if (doc.created && doc.doc_type && doc.importance > 0) {
         emit(doc.created, null);
     }
 }

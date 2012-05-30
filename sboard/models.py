@@ -294,6 +294,10 @@ class BaseNode(schema.Document):
 
     _parent = None
 
+    def __init__(self, *args, **kwargs):
+        self._properties['importance'].default = self._default_importance
+        super(BaseNode, self).__init__(*args, **kwargs)
+
     def __repr__(self):
         class_name = self.__class__.__name__
         return '<%s %s>' % (class_name, self._id)
@@ -419,11 +423,6 @@ class Node(BaseNode):
 
     # Author, who initially created this node.
     author = schema.StringProperty()
-
-
-    def __init__(self, *args, **kwargs):
-        self._properties['importance'].default = self._default_importance
-        super(Node, self).__init__(*args, **kwargs)
 
     def get_body(self):
         try:

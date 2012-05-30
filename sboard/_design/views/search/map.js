@@ -34,7 +34,7 @@ function(doc) {
         return words.split(/[^a-z]+/)
     };
 
-    if (doc.title) {
+    if (doc.title && doc.importance > 0) {
         words = get_words(doc.title);
         for (var j=0; j<words.length; j++) {
             word = words[j];
