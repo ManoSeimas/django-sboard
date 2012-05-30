@@ -1,6 +1,8 @@
 Node models
 ===========
 
+.. _node views:
+
 Node views
 ==========
 
@@ -34,6 +36,7 @@ Example node view:
     adapts(ICategory).
     provideAdapter(DetailsView, (ICategory,), name="details")
 
+.. _node URLs:
 
 Node URLs
 =========
@@ -63,6 +66,15 @@ Examples::
     /some-slug-string/
     /some-slug-string/update/
     /some-slug-string/create/comment/
+
+Also, in some cases, action can be a slug, in these cases address looks like
+this::
+
+    /some-slug-string/othre-slug-string/
+    /some-slug-string/othre-slug-string/action/
+
+See `node views`_ section for more information, how view can be accessed using
+dynamic slugs instead actions.
 
 You can get node URL using ``permalink`` method or ``nodeurl`` template tag.
 
