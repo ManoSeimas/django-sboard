@@ -32,6 +32,7 @@ from .interfaces import INode
 from .interfaces import IRoot
 from .interfaces import ITag
 from .interfaces import ITagsChange
+from .permissions import Permissions
 from .utils import base36
 
 
@@ -296,6 +297,7 @@ class BaseNode(schema.Document):
 
     def __init__(self, *args, **kwargs):
         self._properties['importance'].default = self._default_importance
+        self._permissions = None
         super(BaseNode, self).__init__(*args, **kwargs)
 
     def __repr__(self):
@@ -416,6 +418,24 @@ class BaseNode(schema.Document):
         except ResourceNotFound:
             return None
 
+
+    def get_permissions(self):
+        if self._permissions is not None:
+            return self._permissions
+
+        permissions = Permissions()
+        permissions.update(getRootNode().permissions)
+
+        for ancestor in self.get_ancestors():
+            permissions.update(ancestor.permissions)
+        permissions.update(self.permissions)
+
+        self._permissions = permissions
+        return self._permissions
+
+    def can(self, request, action, factory=None):
+        permissions = self.get_permissions()
+        return permissions.can(request, action, factory)
 
 
 class Node(BaseNode):

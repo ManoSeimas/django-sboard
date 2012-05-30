@@ -27,8 +27,6 @@ from .models import Node
 from .models import Tag
 from .models import TagsChange
 from .models import couch
-from .models import getRootNode
-from .permissions import Permissions
 from .utils import slugify
 
 
@@ -66,11 +64,6 @@ class NodeView(object):
     # TagNode, etc.
     listing = False
 
-    permissions = []
-
-    # Used to cache permissions object.
-    _permissions = None
-
     template = None
 
     def __init__(self, node_or_factory=None):
@@ -83,21 +76,6 @@ class NodeView(object):
     def get_urls(cls):
         return None
 
-    def get_permissions(self):
-        if self._permissions is not None:
-            return self._permissions
-
-        permissions = Permissions()
-        permissions.update(getRootNode().permissions)
-
-        if self.node:
-            for ancestor in self.node.get_ancestors():
-                permissions.update(ancestor.permissions)
-            permissions.update(self.node.permissions)
-
-        self._permissions = permissions
-        return self._permissions
-
     @classmethod
     def has_child_permission(cls, node, action):
         return True
@@ -109,8 +87,7 @@ class NodeView(object):
         if not factory.has_child_permission(self.node, action):
             return False
 
-        permissions = self.get_permissions()
-        return permissions.can(self.request, action, factory.name)
+        return self.node.can(self.request, action, factory.name)
 
     def get_node_list(self):
         if self.node:
