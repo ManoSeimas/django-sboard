@@ -487,6 +487,7 @@ def getRootNode():
 
 class Comment(Node):
     implements(IComment)
+    _default_importance = 0
 
 provideNode(Comment, "comment")
 

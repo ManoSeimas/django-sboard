@@ -2,6 +2,7 @@ import re
 import unidecode
 
 from zope.component import adapts
+from zope.component import getUtility
 from zope.component import provideAdapter
 from zope.interface import implements
 
@@ -10,12 +11,12 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils.translation import ugettext_lazy as _
 
+from .factory import INodeFactory
 from .factory import getNodeFactories
 from .factory import getNodeFactory
 from .forms import CommentForm
 from .forms import NodeForm
 from .forms import TagForm
-from .interfaces import IComment
 from .interfaces import IHistory
 from .interfaces import INode
 from .interfaces import INodeView
@@ -129,9 +130,6 @@ class NodeView(object):
         if node is None:
             node = self.factory()
             node._id = node.get_new_id()
-            parent = data.pop('parent', None) or self.node
-        else:
-            parent = data.pop('parent', None)
 
         for key, val in data.items():
             setattr(node, key, val)
@@ -139,13 +137,12 @@ class NodeView(object):
         if 'title' in data:
             node.slug = slugify(node.title)
 
-        if 'parent' in data:
-            # XXX: actualy parent is always known from self.node, some here more
-            # strict checking must be implemented. Only privileged users should be
-            # able to change node parent, since this is expensive operation...
-            if parent:
-                node.parent = parent
-                node.set_parents(parent)
+        if 'parent' in data or create:
+            if create:
+                parent = data.pop('parent', None) or self.node
+            else:
+                parent = data.pop('parent', None)
+            node.set_parent(parent)
 
         if self.node:
             self.node.before_child_save(form, node, create=create)
@@ -269,7 +266,7 @@ class DetailsView(NodeView):
         # TODO: a hi-tech algorithm needed here, that can take all
         # comment tree, two levels deep and display this tree in one
         # cycle.
-        comments = couch.comments(startkey=[self.node._id, 'Z'],
+        comments = couch.comments(startkey=[self.node._id, u'\ufff0'],
                                   endkey=[self.node._id], descending=True,
                                   include_docs=True, limit=10)
         template = overrides.pop('template', self.template)
@@ -388,15 +385,12 @@ provideAdapter(DeleteView, name="delete")
 
 
 class CommentCreateView(CreateView):
-    adapts(object, IComment)
-
+    adapts(INode)
     form = CommentForm
 
-    @classmethod
-    def has_child_permission(cls, node, action):
-        if action in ('create', 'convert'):
-            return node is not None
-        return True
+    def __init__(self, node, factory=None):
+        self.node = node
+        self.factory = getUtility(INodeFactory, 'comment')
 
     def render(self):
         # Can not create comment if parent node is not provided.
@@ -410,7 +404,7 @@ class CommentCreateView(CreateView):
             details.request = self.request
             return self.render(comment_form=self.get_form())
 
-provideAdapter(CommentCreateView, name="create")
+provideAdapter(CommentCreateView, name='comment')
 
 
 class TagListView(ListView):
