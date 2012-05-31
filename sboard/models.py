@@ -106,44 +106,6 @@ class SboardCouchViews(object):
 couch = SboardCouchViews()
 
 
-class UniqueKeyManager(models.Manager):
-    @transaction.commit_on_success
-    def create(self):
-        obj = UniqueKey()
-        obj.save()
-        obj.key = base36(obj.pk).zfill(6)
-        obj.save()
-        return obj
-
-    def last_key(self):
-        return self.latest('pk')
-
-
-class UniqueKey(models.Model):
-    """Unique key generator.
-
-    This model ensures unique key generation, incremented by 1 and converted to
-    base36.
-
-    Generated key is 6 characters length and can identify 2 176 782 335 nodes.
-
-    >>> UniqueKey.objects.create().key
-    '000001'
-    >>> UniqueKey.objects.create().key
-    '000002'
-    >>> UniqueKey.objects.create().key
-    '000003'
-
-    """
-    key = models.CharField(max_length=16, unique=True, null=True)
-
-    objects = UniqueKeyManager()
-
-
-def get_new_id():
-    return UniqueKey.objects.create().key
-
-
 def parse_node_slug(slug):
     if slug and '+' in slug:
         return slug.split('+')
@@ -232,6 +194,104 @@ class NodeProperty(schema.Property):
             return None
 
     data_type = unicode
+
+
+class NodeRefDescriptor(object):
+    def __init__(self, field):
+        self._field = field
+        self.refattr = '_%s_noderef' % field.name
+
+    def __set__(self, instance, value):
+        if isinstance(value, NodeRef):
+            setattr(instance, self.refattr, value)
+
+        ref = self._get_ref(instance)
+        if value is None:
+            ref._set_id(None)
+        elif isinstance(value, BaseNode):
+            ref._set_node(value)
+        else:
+            ref._set_id(value)
+
+    def __get__(self, instance, instance_type=None):
+        return self._get_ref(instance)
+
+    def _get_ref(self, instance):
+        if not hasattr(instance, self.refattr):
+            setattr(instance, self.refattr, NodeRef())
+        return getattr(instance, self.refattr)
+
+
+class NodeForeignKey(models.CharField):
+    def __init__(self, **kwargs):
+        super(NodeForeignKey, self).__init__(max_length=16, **kwargs)
+
+    def to_python(self, value):
+        if value is None or isinstance(value, NodeRef):
+            return value
+
+        ref = NodeRef()
+        if isinstance(value, BaseNode):
+            ref._set_node(value)
+        else:
+            ref._set_id(value)
+        return ref
+
+    def get_prep_value(self, value):
+        return self.to_python(value)
+
+    def get_db_prep_value(self, value, connection, prepared=False):
+        if not prepared:
+            value = self.get_prep_value(value)
+        return value._id
+
+    def value_to_string(self, obj):
+        value = self._get_val_from_obj(obj)
+        return self.get_db_prep_value(value)
+
+    def contribute_to_class(self, cls, name):
+        super(NodeForeignKey, self).contribute_to_class(cls, name)
+        setattr(cls, self.name, NodeRefDescriptor(self))
+
+
+class UniqueKeyManager(models.Manager):
+    @transaction.commit_on_success
+    def create(self):
+        obj = UniqueKey()
+        obj.save()
+        obj.key = base36(obj.pk).zfill(6)
+        obj.save()
+        return obj
+
+    def last_key(self):
+        return self.latest('pk')._id
+
+
+class UniqueKey(models.Model):
+    """Unique key generator.
+
+    This model ensures unique key generation, incremented by 1 and converted to
+    base36.
+
+    Generated key is 6 characters length and can identify 2 176 782 335 nodes.
+
+    >>> UniqueKey.objects.create().key._id
+    '000001'
+    >>> UniqueKey.objects.create().key._id
+    '000002'
+    >>> UniqueKey.objects.create().key._id
+    '000003'
+
+    """
+    key = NodeForeignKey(unique=True, null=True)
+
+    objects = UniqueKeyManager()
+
+
+def get_new_id():
+    return UniqueKey.objects.create().key._id
+
+
 
 
 def set_nodes_ambiguous(nodes):
@@ -349,7 +409,7 @@ class BaseNode(schema.Document):
         return reverse('node', args=(self.urlslug(),) + args)
 
     def get_new_id(self):
-        return UniqueKey.objects.create().key
+        return UniqueKey.objects.create().key._id
 
     def set_new_id(self):
         self._id = self.get_new_id()
