@@ -17,6 +17,7 @@ from .factory import getNodeFactory
 from .forms import CommentForm
 from .forms import NodeForm
 from .forms import TagForm
+from .interfaces import IComment
 from .interfaces import IHistory
 from .interfaces import INode
 from .interfaces import INodeView
@@ -367,7 +368,7 @@ class CommentCreateView(CreateView):
 
     def __init__(self, node, factory=None):
         self.node = node
-        self.factory = getUtility(INodeFactory, 'comment')
+        self.factory = factory or getUtility(INodeFactory, 'comment')
 
     def render(self):
         # Can not create comment if parent node is not provided.
@@ -382,6 +383,7 @@ class CommentCreateView(CreateView):
             return self.render(comment_form=self.get_form())
 
 provideAdapter(CommentCreateView, name='comment')
+provideAdapter(CommentCreateView, (INode, IComment), name='create')
 
 
 class TagListView(ListView):
