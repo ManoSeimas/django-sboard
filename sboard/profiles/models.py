@@ -162,3 +162,7 @@ def query_group_membership(group_id):
         profile = next(query)
         node.profile = profile
         yield node
+
+
+def query_profiles(profile_keys):
+    return couch.view('_all_docs', keys=profile_keys)
