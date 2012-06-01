@@ -4,30 +4,40 @@ import unidecode
 from zope.component import adapts
 from zope.component import getUtility
 from zope.component import provideAdapter
+from zope.interface import classImplements
 from zope.interface import implements
 
+from django.conf import settings
 from django.http import Http404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils.translation import ugettext_lazy as _
 
+from couchdbkit.client import ViewResults
+
 from .factory import INodeFactory
 from .factory import getNodeFactories
 from .factory import getNodeFactory
+from .factory import provideViewExt
 from .forms import CommentForm
 from .forms import NodeForm
 from .forms import TagForm
 from .interfaces import IComment
 from .interfaces import IHistory
 from .interfaces import INode
+from .interfaces import INodeDbView
+from .interfaces import INodeJsonView
 from .interfaces import INodeView
 from .interfaces import IRoot
 from .interfaces import ITagsChange
+from .interfaces import IViewResults
+from .json import json_response
 from .models import BaseNode
 from .models import Node
 from .models import Tag
 from .models import TagsChange
 from .models import couch
+from .models import set_nodes_ambiguous
 from .utils import slugify
 
 
@@ -36,15 +46,12 @@ _nodes_by_model = None
 search_words_re = re.compile(r'[^a-z]+')
 
 
-class NodeView(object):
+class BaseNodeView(object):
     """Base node view class.
 
     Each node must be associated with node view class, where goes all request
     handling logic and response preparation.
     """
-
-    implements(INodeView)
-    adapts(INode)
 
     slug = None
     name = _('Node')
@@ -187,6 +194,40 @@ class NodeView(object):
             })
 
         return nav
+
+    def validate(self):
+        """Validate request before rendering it.
+
+        This hook gives a chance for all view classes to validate request
+        before starting to render it.
+
+        If validation passes, this function must return None.
+
+        If there is validation erros, this function must return response object
+        with error message.
+
+        Currently this functionality is only used in sboard.ajax.JsonView.
+        """
+        return None
+
+    def set_view_func(self, view):
+        """This hook gives real Django view, that is responsible for request
+        processing.
+
+        You can attach flags like ``view.csrf_exempt = True``, that are
+        recognized by Django.
+
+        """
+        pass
+
+    def set_request(self, request):
+        """Set request for this view."""
+        self.request = request
+
+
+class NodeView(BaseNodeView):
+    implements(INodeView)
+    adapts(INode)
 
 
 class ListView(NodeView):
@@ -430,3 +471,47 @@ class TagsChangeView(NodeView):
     adapts(ITagsChange)
 
 provideAdapter(TagsChangeView, name="tags-change")
+
+
+class AmbiguousNodeView(ListView):
+    adapts(IViewResults)
+
+    def __init__(self, nodes):
+        set_nodes_ambiguous(nodes)
+        self.nodes = nodes
+
+    def get_node_list(self):
+        return self.nodes
+
+classImplements(ViewResults, IViewResults)
+provideAdapter(AmbiguousNodeView)
+
+
+class JsonView(BaseNodeView):
+    implements(INodeJsonView)
+    adapts(INode)
+
+    def render(self, **overrides):
+        return json_response(self.node._doc)
+
+provideAdapter(JsonView)
+provideViewExt(INodeJsonView, 'json')
+
+
+class DbView(BaseNodeView):
+    implements(INodeDbView)
+    adapts(INode)
+
+    def render(self, **overrides):
+        if (hasattr(settings, 'PUBLIC_COUCHDB_SERVER') and
+            settings.PUBLIC_COUCHDB_SERVER):
+            url = 'http://%s/_utils/document.html?nodes/%s' % (
+                        settings.PUBLIC_COUCHDB_SERVER,
+                        self.node._id,
+                    )
+            return redirect(url)
+        else:
+            raise Http404
+
+provideAdapter(DbView)
+provideViewExt(INodeDbView, 'db')

@@ -40,6 +40,22 @@ def provideNode(node_class, name=""):
     provideUtility(node_factory, INodeFactory, name)
 
 
+class IViewExtFactory(Interface): pass
+
+
+class ViewExtFactory(object):
+    implements(IViewExtFactory)
+
+    def __init__(self, interface, ext):
+        self.interface = interface
+        self.ext = ext
+
+
+def provideViewExt(interface, ext):
+    factory = ViewExtFactory(interface, ext)
+    provideUtility(factory, IViewExtFactory, ext)
+
+
 def getNodeFactory(name):
     """Returns node class by given ``name``."""
     return getUtility(INodeFactory, name)

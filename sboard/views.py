@@ -11,56 +11,59 @@ from django.http import Http404
 from django.http import HttpResponse
 
 from couchdbkit.client import ViewResults
+from couchdbkit.exceptions import MultipleResultsFound
 
 from .factory import INodeFactory
+from .factory import IViewExtFactory
 from .factory import get_search_handlers
 from .interfaces import INodeView
 from .models import couch
-from .models import getRootNode
 from .models import get_node_by_slug
-from .models import set_nodes_ambiguous
 
 
-def get_node_view(node, action='', name=''):
+def get_node_view(node, action='', name='', ext=''):
+    if ext:
+        view_interface = getUtility(IViewExtFactory, ext).interface
+    else:
+        view_interface = INodeView
+
+    if isinstance(node, ViewResults):
+        return getAdapter(node, view_interface)
+
     view = None
     if name:
         try:
             factory = getUtility(INodeFactory, name)
         except ComponentLookupError:
             # /node/action/name/ - dynamic action, static name
-            view = getMultiAdapter((node, action), INodeView, name)
+            view = getMultiAdapter((node, action), view_interface, name)
         else:
             # /node/action/factory/ - static action
-            view = getMultiAdapter((node, factory), INodeView, action)
+            view = getMultiAdapter((node, factory), view_interface, action)
     else:
         try:
             # /node/action/ - static action
-            view = getAdapter(node, INodeView, action)
+            view = getAdapter(node, view_interface, action)
         except ComponentLookupError:
             # /node/action/ - dynamic action
-            view = getMultiAdapter((node, action), INodeView)
+            view = getMultiAdapter((node, action), view_interface)
 
     return view
 
 
-def node(request, slug=None, action='', name=''):
+def node_view(request, slug=None, action='', name='', ext=''):
     node = get_node_by_slug(slug)
     if node is None:
         raise Http404
-    elif isinstance(node, ViewResults):
-        return duplicate_slug_nodes(request, node)
 
-    view = get_node_view(node, action, name)
-    view.request = request
-    return view.render()
+    if ext and isinstance(node, ViewResults):
+        length = len(node)
+        raise MultipleResultsFound("%s results found." % length)
 
-
-def duplicate_slug_nodes(request, nodes):
-    set_nodes_ambiguous(nodes)
-    node = getRootNode()
-    view = getAdapter(node, INodeView, 'list')
-    view.request = request
-    return view.render(node_list=nodes)
+    view = get_node_view(node, action, name, ext)
+    view.set_request(request)
+    view.set_view_func(node_view)
+    return view.validate() or view.render()
 
 
 def search(request):
@@ -72,8 +75,9 @@ def search(request):
         view = handler(query)
         if view:
             if INodeView.providedBy(view):
-                view.request = request
-                return view.render()
+                view.set_request(request)
+                view.set_view_func(search)
+                return view.validate() or view.render()
             else:
                 return view
 

@@ -405,8 +405,14 @@ class BaseNode(schema.Document):
         else:
             return self.get_slug()
 
-    def permalink(self, *args):
-        return reverse('node', args=(self.urlslug(),) + args)
+    def permalink(self, *args, **kwargs):
+        name = 'node'
+        args = (self.urlslug(),) + args
+        ext = kwargs.get('ext')
+        if ext:
+            args += (ext,)
+            name = 'node_ext'
+        return reverse(name, args=args)
 
     def get_new_id(self):
         return UniqueKey.objects.create().key._id

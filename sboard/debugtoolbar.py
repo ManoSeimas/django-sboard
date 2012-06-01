@@ -1,19 +1,12 @@
 import pprint
 
-from zope.component import getAdapter
-from zope.component import getMultiAdapter
-from zope.component import getUtility
-
 from django.utils.translation import ugettext_lazy as _
 
 from debug_toolbar.panels import DebugPanel
 
-from couchdbkit.client import ViewResults
-
-from .models import getRootNode
 from .models import get_node_by_slug
 from .views import get_node_view
-from .views import node as node_view
+from .views import node_view
 
 
 class NodeDebugPanel(DebugPanel):
@@ -46,13 +39,11 @@ class NodeDebugPanel(DebugPanel):
 
             if node is None:
                 view = None
-            elif isinstance(node, ViewResults):
-                node = getRootNode()
-                view = get_node_view(node, action='list')
             else:
                 action = view_kwargs.get('action', '')
                 name = view_kwargs.get('name', '')
-                view = get_node_view(node, action, name)
+                ext = view_kwargs.get('ext', '')
+                view = get_node_view(node, action, name, ext)
 
             context = {
                 'view': view,

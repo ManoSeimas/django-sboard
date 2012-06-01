@@ -46,13 +46,12 @@ specified slug, then node URL will be constructed from unique key::
 
     0002ar
 
-If node has slug, then slug is unique, then URL will be constructed using that
+If node has slug, and slug is unique, then URL will be constructed using that
 slug::
 
     some-slug-string
 
-If node slug is not unique across all nodes, then URL will be constructed from
-slug and key::
+If node slug is not unique, then URL will be constructed from slug and key::
 
     some-slug-string+0002ar
 
@@ -76,6 +75,12 @@ this::
 See `node views`_ section for more information, how view can be accessed using
 dynamic slugs instead actions.
 
+Als, node can be rendered in specified format, form example::
+
+    /some-slug-string.json
+
+This URL returns node in JSON format. You can register your custom formats.
+
 You can get node URL using ``permalink`` method or ``nodeurl`` template tag.
 
 In python files:
@@ -85,6 +90,7 @@ In python files:
     node.permalink()
     node.permalink('update')
     node.permalink('create', 'comment')
+    node.permalink(ext='json')
 
 In templates:
 
@@ -95,3 +101,4 @@ In templates:
     <a href="{{ node.permalink }}">{{ node.title }}</a>
     <a href="{% nodeurl node 'update' %}">Edit</a>
     <a href="{% nodeurl node 'create' 'comment' %}">Create comment</a>
+    <a href="{% nodeexturl node 'json' %}">JSON</a>

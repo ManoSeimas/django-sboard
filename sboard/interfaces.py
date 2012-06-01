@@ -2,10 +2,26 @@ from zope.interface import Interface
 
 
 class INodeView(Interface):
-    """A view, that takes request and node instances and renders response."""
+    """Node view.
+
+    All implementing classes must provide render method, that returns Django
+    HttpResponse object.
+
+    """
+
+class INodeJsonView(Interface):
+    """Node AJAX view."""
+
+
+class INodeDbView(Interface):
+    """Views implementing this interface redirects to database record of
+    requested node.."""
 
 
 class IHttpRequest(Interface): pass
+
+
+class IViewResults(Interface): pass
 
 
 class INode(Interface):
