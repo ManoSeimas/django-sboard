@@ -14,6 +14,7 @@ from sorl.thumbnail import get_thumbnail
 
 from sboard.factory import provideNode
 from sboard.models import BaseNode
+from sboard.models import NodeForeignKey
 from sboard.models import NodeProperty
 from sboard.models import couch
 
@@ -43,7 +44,7 @@ class Profile(models.Model):
     user = models.OneToOneField(User, verbose_name=_('User'))
     karma = models.IntegerField(_('Karma'), default=0, choices=KARMA_CHOICES)
     name = models.CharField(_('Name'), max_length=255)
-    node = models.CharField(_('Profile node ID'), max_length=20)
+    node = NodeForeignKey()
 
     objects = ProfileManager()
 
@@ -54,8 +55,9 @@ class Profile(models.Model):
     def __unicode__(self):
         return self.name
 
+    # XXX: deprecated, use self.node.ref instead.
     def get_node(self):
-        return couch.get(self.node)
+        return self.node.ref
 
 
 def create_user_profile(sender, instance, created, **kwargs):
