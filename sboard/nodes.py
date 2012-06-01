@@ -218,7 +218,7 @@ class BaseNodeView(object):
         recognized by Django.
 
         """
-        pass
+        self.view_func = view
 
     def set_request(self, request):
         """Set request for this view."""
@@ -515,3 +515,10 @@ class DbView(BaseNodeView):
 
 provideAdapter(DbView)
 provideViewExt(INodeDbView, 'db')
+
+
+def clone_view(factory, view, *args, **kwargs):
+    clone = factory(*args, **kwargs)
+    clone.set_view_func(view.view_func)
+    clone.set_request(view.request)
+    return clone

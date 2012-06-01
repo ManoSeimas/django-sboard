@@ -27,6 +27,7 @@ class AjaxView(JsonView):
     allowed_methods = ('GET', 'POST', 'PUT', 'DELETE',)
 
     def set_view_func(self, view):
+        super(AjaxView, self).set_view_func(view)
         view.csrf_exempt = True
 
     def validate(self):
