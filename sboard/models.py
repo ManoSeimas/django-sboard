@@ -1,5 +1,6 @@
 import datetime
 import functools
+import itertools
 import os
 import os.path
 
@@ -683,3 +684,21 @@ class CustomImage(Image):
         return super(CustomImage, self).run()
 
 directives.register_directive('image', CustomImage)
+
+
+
+def prefetch_nodes(attr, objects):
+    if not isinstance(objects, tuple):
+        objects = (objects,)
+
+    # Get all keys
+    keys, keymap = [], {}
+    for obj in itertools.chain(*objects):
+        key = getattr(obj, attr)._id
+        keys.append(key)
+        keymap[key] = obj
+
+    # Get all nodes and assign to attributes.
+    for node in couch.view('_all_docs', keys=keys):
+        obj = keymap[node._id]
+        setattr(obj, attr, node)
