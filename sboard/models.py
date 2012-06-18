@@ -689,8 +689,12 @@ class FileNode(Node):
             if fetch:
                 stream = self.fetch_attachment('file.%s' % self.ext, stream=True)
                 f = open(filepath, 'wb')
-                for chunk in stream.read(1024):
-                    f.write(chunk)
+                while True:
+                    chunk = stream.read(1024)
+                    if chunk:
+                        f.write(chunk)
+                    else:
+                        break
                 f.close()
         return filepath
 
