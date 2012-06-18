@@ -98,10 +98,37 @@ class SboardCouchViews(object):
         db = Node.get_db()
         return db.get(docid, rev=rev, wrapper=self.wrap)
 
+    def check_kwargs(self, kwargs):
+        # slice key
+        if 'skey' in kwargs:
+            skey = kwargs.pop('skey')
+            if not isinstance(skey, (list, tuple)):
+                skey = [skey]
+            ekey = skey + [u'\ufff0']
+            if kwargs.get('descending'):
+                kwargs.update(dict(startkey=ekey, endkey=skey))
+            else:
+                kwargs.update(dict(startkey=skey, endkey=ekey))
+
     def view(self, view, **kwargs):
+        self.check_kwargs(kwargs)
         kwargs.setdefault('include_docs', True)
         kwargs.setdefault('classes', self.get_doc_type_map())
         return Node.view(view, **kwargs)
+
+    def iterchunks(self, view, **kwargs):
+        counter = None
+        rows_per_chunk = 50
+        while counter is None or counter > rows_per_chunk:
+            counter = 0
+            kwargs['limit'] = rows_per_chunk + 1
+            for row in self.view(view, **kwargs):
+                counter += 1
+                if counter > rows_per_chunk:
+                    kwargs['startkey'] = row['key']
+                    kwargs['startkey_docid'] = row['id']
+                else:
+                    yield row
 
 
 couch = SboardCouchViews()
