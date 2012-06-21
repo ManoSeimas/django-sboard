@@ -5,7 +5,9 @@ from django.shortcuts import render
 
 from sboard.nodes import ListView
 from sboard.nodes import NodeView
+from sboard.nodes import UpdateView
 
+from .forms import ProfileForm
 from .interfaces import IGroup
 from .interfaces import IProfile
 from .models import query_group_membership
@@ -27,6 +29,12 @@ class ProfileView(NodeView):
         return render(self.request, template, context)
 
 provideAdapter(ProfileView)
+
+
+class ProfileUpdateView(UpdateView):
+    form = ProfileForm
+
+provideAdapter(ProfileUpdateView, name="update")
 
 
 class GroupView(ListView):

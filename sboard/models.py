@@ -531,6 +531,21 @@ class BaseNode(schema.Document):
         permissions = self.get_permissions()
         return permissions.can(request, action, factory)
 
+    def before_save(self, form, node, create=False):
+        """This method will be called before saving node.
+
+        You can override this method to some extra work with node before saving
+        it.
+        """
+        pass
+
+    def before_child_save(self, form, node, create=False):
+        """This method will be called before saving child node.
+
+        This method does same as before_save, except is called on parent node.
+        """
+        pass
+
 
 class Node(BaseNode):
     implements(INode)
@@ -558,21 +573,6 @@ class Node(BaseNode):
         # text/restructured
         return markup.restructuredtext(self.get_body())
     render_body.is_safe = True
-
-    def before_save(self, form, node, create=False):
-        """This method will be called before saving node.
-
-        You can override this method to some extra work with node before saving
-        it.
-        """
-        pass
-
-    def before_child_save(self, form, node, create=False):
-        """This method will be called before saving child node.
-
-        This method does same as before_save, except is called on parent node.
-        """
-        pass
 
 
 provideNode(Node, "node")

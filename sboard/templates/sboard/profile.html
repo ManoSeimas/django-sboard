@@ -1,16 +1,6 @@
-{% extends "base.html" %}
+{% extends "sboard/base.html" %}
 {% load i18n %}
 {% load thumbnail %}
-
-{% block sidebar %}
-<ul class="nav nav-list">
-  {% include "sboard/actions.html" %}
-  <li class="nav-header">{% trans "Seimo narys" %}</li>
-  <li class="active"><a href="#">Bendra informacija</a></li>
-  <li><a href="#">Sprendimai</a></li>
-  <li><a href="#">Statistika</a></li>
-</ul>
-{% endblock %}
 
 {% block content %}
 <p><img src="{{ profile.avatar_url_big }}" style="float:left;margin-right:8px;" /></p>

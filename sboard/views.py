@@ -60,7 +60,11 @@ def node_view(request, slug=None, action='', name='', ext=''):
         length = len(node)
         raise MultipleResultsFound("%s results found." % length)
 
-    view = get_node_view(node, action, name, ext)
+    try:
+        view = get_node_view(node, action, name, ext)
+    except ComponentLookupError:
+        raise Http404
+
     view.set_request(request)
     view.set_view_func(node_view)
     return view.validate() or view.render()
