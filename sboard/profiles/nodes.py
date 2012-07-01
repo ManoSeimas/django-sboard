@@ -32,6 +32,7 @@ provideAdapter(ProfileView)
 
 
 class ProfileUpdateView(UpdateView):
+    adapts(IProfile)
     form = ProfileForm
 
 provideAdapter(ProfileUpdateView, name="update")
