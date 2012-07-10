@@ -142,7 +142,7 @@ class BaseNodeView(object):
     def get_create_links(self, active=tuple()):
         nav = []
         if self.node:
-            for name, factory in getNodeFactories():
+            for name, factory in sorted(getNodeFactories()):
                 if self.can('create', factory):
                     nav.append({
                         'key': name,
