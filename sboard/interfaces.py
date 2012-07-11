@@ -45,3 +45,7 @@ class IComment(INode): pass
 class ITag(INode): pass
 class IHistory(INode): pass
 class ITagsChange(INode): pass
+
+class IPage(INode):
+    """Basically a Node, but doesn't have comment or tag forms in the default
+    view."""

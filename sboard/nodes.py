@@ -31,6 +31,7 @@ from .interfaces import INodeView
 from .interfaces import IRoot
 from .interfaces import ITagsChange
 from .interfaces import IViewResults
+from .interfaces import IPage
 from .json import json_response
 from .models import BaseNode
 from .models import Node
@@ -308,6 +309,13 @@ class DetailsView(NodeView):
 
 provideAdapter(DetailsView)
 provideAdapter(DetailsView, name="details")
+
+
+class PageView(DetailsView):
+    adapts(IPage)
+    template = 'sboard/article.html'
+
+provideAdapter(PageView)
 
 
 class CreateView(NodeView):

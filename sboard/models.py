@@ -33,6 +33,7 @@ from .interfaces import INode
 from .interfaces import IRoot
 from .interfaces import ITag
 from .interfaces import ITagsChange
+from .interfaces import IPage
 from .permissions import Permissions
 from .utils import base36
 
@@ -715,6 +716,12 @@ class CustomImage(Image):
         return super(CustomImage, self).run()
 
 directives.register_directive('image', CustomImage)
+
+
+class PageNode(Node):
+    implements(IPage)
+
+provideNode(PageNode, "page")
 
 
 
