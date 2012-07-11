@@ -718,10 +718,10 @@ class CustomImage(Image):
 directives.register_directive('image', CustomImage)
 
 
-class PageNode(Node):
+class Page(Node):
     implements(IPage)
 
-provideNode(PageNode, "page")
+provideNode(Page, "page")
 
 
 
