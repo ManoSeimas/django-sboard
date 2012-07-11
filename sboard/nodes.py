@@ -313,7 +313,7 @@ provideAdapter(DetailsView, name="details")
 
 class PageView(DetailsView):
     adapts(IPage)
-    template = 'sboard/article.html'
+    template = 'sboard/page.html'
 
 provideAdapter(PageView)
 
