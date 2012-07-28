@@ -424,12 +424,7 @@ class CommentCreateView(CreateView):
         if not self.node:
             raise Http404
 
-        if self.request.method == 'POST':
-            return super(CommentCreateView, self).render()
-        else:
-            details = DetailsView(self.node)
-            details.request = self.request
-            return self.render(comment_form=self.get_form())
+        return super(CommentCreateView, self).render()
 
 provideAdapter(CommentCreateView, name='comment')
 provideAdapter(CommentCreateView, (INode, IComment), name='create')
