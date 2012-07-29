@@ -84,6 +84,14 @@ def autodiscover():
 
     for app in settings.INSTALLED_APPS:
         mod = import_module(app)
+
+        # Make sure that models are imported. Without this, if the
+        # ``nodes`` module doesn't import ``models``, nodes defined there may
+        # not be registered with ZCA and doctypes won't be detected correcly.
+        # This happens rarely under certain mysterious circumstances.
+        if module_has_submodule(mod, 'models'):
+            import_module('%s.models' % app)
+
         if module_has_submodule(mod, 'nodes'):
             import_module('%s.nodes' % app)
 
