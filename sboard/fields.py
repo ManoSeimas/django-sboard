@@ -25,10 +25,7 @@ class NodeField(forms.SlugField):
         if value:
             try:
                 node = couch.get(value)
-                if node.slug:
-                    return '%s+%s' % (node.slug, node._id)
-                else:
-                    return node._id
+                return node.urlslug()
             except ResourceNotFound:
                 return value
 
