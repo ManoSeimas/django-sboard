@@ -123,6 +123,9 @@ class ProfileNode(BaseNode):
             url = 'http://www.gravatar.com/avatar/%s?s=%s' % (key, size)
         return url
 
+    def avatar_url_small(self):
+        return self.avatar_url(24)
+
     def avatar_url_big(self):
         return self.avatar_url(135)
 
