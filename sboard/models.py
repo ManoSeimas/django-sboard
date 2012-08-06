@@ -282,6 +282,17 @@ class NodeForeignKey(models.CharField):
         super(NodeForeignKey, self).contribute_to_class(cls, name)
         setattr(cls, self.name, NodeRefDescriptor(self))
 
+# Register field with South, but don't depend on it.
+try:
+    from south.modelsinspector import add_introspection_rules
+    add_introspection_rules(
+        # max_length is always 16, so ensure that south doesn't pass it to the field constructor
+        [((NodeForeignKey,), [], {'max_length': ['max_length', {'default': 16}]})],
+        ["^sboard\.models\.NodeForeignKey"],
+    )
+except ImportError:
+    pass
+
 
 class UniqueKeyManager(models.Manager):
     @transaction.commit_on_success
