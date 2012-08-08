@@ -1,4 +1,7 @@
 from django import forms
+from django.core.exceptions import ValidationError
+
+from django.contrib.markup.templatetags import markup
 
 from .fields import NodeField
 
@@ -19,11 +22,18 @@ class BaseNodeForm(forms.Form):
         return initial
 
 
+def validate_body(body):
+    try:
+        markup.restructuredtext(body)
+    except Exception as e:
+        raise ValidationError('Error in markup: %s' % e)
+
+
 class NodeForm(BaseNodeForm):
     title = forms.CharField()
     parent = NodeField(required=False)
     summary = forms.CharField(widget=forms.Textarea, required=False)
-    body = forms.CharField(widget=forms.Textarea, required=False)
+    body = forms.CharField(widget=forms.Textarea, required=False, validators=[validate_body])
 
 
 class TagForm(BaseNodeForm):
