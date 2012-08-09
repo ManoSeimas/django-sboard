@@ -21,6 +21,8 @@ from couchdbkit.exceptions import ResourceNotFound
 from couchdbkit.ext.django import schema
 from couchdbkit.ext.django.loading import couchdbkit_handler
 
+from sorl.thumbnail import get_thumbnail
+
 from docutils.parsers.rst import directives
 from docutils.parsers.rst.directives.images import Image
 
@@ -393,6 +395,9 @@ class BaseNode(schema.Document):
     likes = schema.IntegerProperty(default=0)
     dislikes = schema.IntegerProperty(default=0)
 
+    # Profile photo node ID
+    photo = NodeProperty(required=False)
+
     _parent = None
 
     def __init__(self, *args, **kwargs):
@@ -524,6 +529,12 @@ class BaseNode(schema.Document):
         except ResourceNotFound:
             return None
 
+    def photo_url(self, size):
+        if self.photo:
+            path = self.photo.ref.path()
+            geom = '%d' % size
+            im = get_thumbnail(path, geom, upscale=False)
+            return im.url
 
     def get_permissions(self):
         if self._permissions is not None:

@@ -83,9 +83,6 @@ class ProfileNode(BaseNode):
     dob = schema.StringProperty()
     home_page = schema.StringProperty()
 
-    # Profile photo node ID
-    photo = NodeProperty(required=False)
-
     def age(self):
         if not self.dob:
             return None
@@ -108,26 +105,17 @@ class ProfileNode(BaseNode):
     def user(self):
         return User.objects.get(pk=self.uid)
 
-    def avatar_url(self, size=40):
-        if self.photo:
-            path = self.photo.ref.path()
-            geom = '%d' % size
-            im = get_thumbnail(path, geom, upscale=False)
-            url = im.url
+    def photo_url(self, size=40):
+        url = super(ProfileNode, self).photo_url(size=size)
+        if url:
+            return url
         elif self.user().email:
             email = self.user().email.lower()
             key = hashlib.md5(email).hexdigest()
-            url = 'http://www.gravatar.com/avatar/%s?s=%s' % (key, size)
+            return 'http://www.gravatar.com/avatar/%s?s=%s' % (key, size)
         else:
             key = '0' * 32
-            url = 'http://www.gravatar.com/avatar/%s?s=%s' % (key, size)
-        return url
-
-    def avatar_url_small(self):
-        return self.avatar_url(24)
-
-    def avatar_url_big(self):
-        return self.avatar_url(135)
+            return 'http://www.gravatar.com/avatar/%s?s=%s' % (key, size)
 
 provideNode(ProfileNode, "profile")
 

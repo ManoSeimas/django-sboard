@@ -3,7 +3,7 @@
 {% load thumbnail %}
 
 {% block content %}
-<p><img src="{{ profile.avatar_url_big }}" style="float:left;margin-right:8px;" /></p>
+<p><img src="{{ profile.photo_url_big }}" style="float:left;margin-right:8px;" /></p>
 <h1>{{ profile.title }}</h1>
 {% if profile.dob %}
 <p>{% trans "Date of birth" %}: {{ profile.dob }} ({{ profile.age }})</p>
