@@ -21,10 +21,6 @@ def nodepermission(context, node, action):
     return node.can(context['request'], action)
 
 
-PHOTO_SIZE_SMALL=24
-PHOTO_SIZE_NORMAL=40
-PHOTO_SIZE_LARGE=135
-
 SIZES = {
     'small': 24,
     'normal': 40,
@@ -32,17 +28,17 @@ SIZES = {
 }
 
 @register.simple_tag
-def nodephoto(node, size='normal', additional_classes=''):
+def nodeimage(node, size='normal', additional_classes=''):
     if size in SIZES:
-        html_class = 'node-photo-%s' % size
+        html_class = 'node-image-%s' % size
         size = SIZES[size]
     else:
-        html_class = 'node-photo'
+        html_class = 'node-image'
 
     if additional_classes:
         html_class += ' ' + additional_classes
 
-    url = node.photo_url(size=size)
+    url = node.image_url(size=size)
 
     if url:
         return u'<img alt="%s" src="%s" class="%s">' % tuple(map(escape, (node.title or '', url, html_class)))

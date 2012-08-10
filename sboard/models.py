@@ -395,8 +395,8 @@ class BaseNode(schema.Document):
     likes = schema.IntegerProperty(default=0)
     dislikes = schema.IntegerProperty(default=0)
 
-    # Profile photo node ID
-    photo = NodeProperty(required=False)
+    # An image related to this node.
+    image = NodeProperty(required=False)
 
     _parent = None
 
@@ -529,9 +529,9 @@ class BaseNode(schema.Document):
         except ResourceNotFound:
             return None
 
-    def photo_url(self, size):
-        if self.photo:
-            path = self.photo.ref.path()
+    def image_url(self, size):
+        if self.image:
+            path = self.image.ref.path()
             geom = '%d' % size
             im = get_thumbnail(path, geom, upscale=False)
             return im.url
