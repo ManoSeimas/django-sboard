@@ -1,5 +1,6 @@
 import re
 import unidecode
+import os
 
 from zope.component import adapts
 from zope.component import getUtility
@@ -37,6 +38,7 @@ from .models import BaseNode
 from .models import Node
 from .models import Tag
 from .models import TagsChange
+from .models import ImageNode
 from .models import couch
 from .models import set_nodes_ambiguous
 from .utils import slugify
@@ -116,6 +118,14 @@ class BaseNodeView(object):
         if node is None:
             node = self.factory()
             node._id = node.get_new_id()
+
+        if 'image' in data:
+            image_data = data['image']
+            filename, ext = os.path.splitext(image_data.name.lower())
+            ext = ext[1:] # remove leading dot
+            node.set_image(image_data, ext)
+            image_data.close()
+            del(data['image'])
 
         for key, val in data.items():
             setattr(node, key, val)
@@ -338,7 +348,7 @@ class CreateView(NodeView):
             return render(self.request, '403.html', status=403)
 
         if self.request.method == 'POST':
-            form = self.get_form(self.request.POST)
+            form = self.get_form(self.request.POST, self.request.FILES)
             if form.is_valid():
                 child = self.form_save(form)
                 if self.node:
@@ -367,7 +377,7 @@ class UpdateView(NodeView):
             return render(self.request, '403.html', status=403)
 
         if self.request.method == 'POST':
-            form = self.get_form(self.request.POST)
+            form = self.get_form(self.request.POST, self.request.FILES)
             if form.is_valid():
                 node = self.form_save(form, self.node)
                 return redirect(node.permalink())

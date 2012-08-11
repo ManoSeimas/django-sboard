@@ -536,6 +536,24 @@ class BaseNode(schema.Document):
             im = get_thumbnail(path, geom, upscale=False)
             return im.url
 
+    def set_image(self, data, ext):
+        if self.image:
+            image = self.image.ref
+        else:
+            image = ImageNode()
+            image.set_new_id()
+        image.title = self.title
+        image.set_parent(self)
+        image.ext = ext
+        image.save()
+        image.put_attachment(
+            data,
+            'file.%s' % ext,
+            content_length=getattr(data, 'size', None),
+        )
+        self.image = image
+
+
     def get_permissions(self):
         if self._permissions is not None:
             return self._permissions
@@ -693,6 +711,8 @@ provideNode(TagsChange, "tags-change")
 
 
 class FileNode(Node):
+    _default_importance = 0
+
     ext = schema.StringProperty(required=True)
 
     def path(self, fetch=True):
