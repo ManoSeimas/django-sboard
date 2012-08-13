@@ -2,6 +2,8 @@ from django import template
 
 from cgi import escape
 
+from sorl.thumbnail.templatetags.thumbnail import margin
+
 register = template.Library()
 
 
@@ -38,10 +40,22 @@ def nodeimage(node, size='normal', additional_classes=''):
     if additional_classes:
         html_class += ' ' + additional_classes
 
-    url = node.image_url(size=size)
+    attrs = {
+        'alt': node.title,
+        'class': html_class,
+    }
 
-    if url:
-        return u'<img alt="%s" src="%s" class="%s">' % tuple(map(escape, (node.title or '', url, html_class)))
+    if node.image:
+        geometry = '%dx%d' % (size, size)
+        thumbnail = node.image.ref.thumbnail(geometry)
+        attrs['src'] = thumbnail.url
+        attrs['style'] = 'padding:%s' % margin(thumbnail, geometry)
+    else:
+        attrs['src'] = node.image_url(size=size)
+
+    if attrs['src']:
+        attr_string = u' '.join(u'%s="%s"' % (name, escape(value)) for name, value in attrs.items())
+        return u'<img %s>' % attr_string
     else:
         return ''
 

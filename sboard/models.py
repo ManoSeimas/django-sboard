@@ -531,10 +531,8 @@ class BaseNode(schema.Document):
 
     def image_url(self, size):
         if self.image:
-            path = self.image.ref.path()
-            geom = '%d' % size
-            im = get_thumbnail(path, geom, upscale=False)
-            return im.url
+            geometry = '%dx%d' % (size, size)
+            return self.image.ref.thumbnail(geometry=geometry).url
 
     def set_image(self, data, ext):
         if self.image:
@@ -745,7 +743,9 @@ provideNode(FileNode, "file")
 
 
 class ImageNode(FileNode):
-    pass
+    def thumbnail(self, geometry):
+        path = self.path()
+        return get_thumbnail(path, geometry, upscale=False)
 
 provideNode(ImageNode, "image")
 
