@@ -117,6 +117,13 @@ class ProfileNode(BaseNode):
             key = '0' * 32
             return 'http://www.gravatar.com/avatar/%s?s=%s' % (key, size)
 
+    def groups(self):
+        today = datetime.date.today()
+        for m in query_profile_membership(self._id):
+            if (not m.term_from or m.term_from <= today) and \
+                    (not m.term_to or m.term_to >= today):
+                yield m.group.ref
+
 provideNode(ProfileNode, "profile")
 
 
@@ -154,6 +161,18 @@ def query_group_membership(group_id):
     for node in query:
         profile = next(query)
         node.profile = profile
+        yield node
+
+
+def query_profile_membership(profile_id):
+    kwargs = dict(
+        startkey=[profile_id],
+        endkey=[profile_id, u'\ufff0']
+    )
+    query = couch.view('profiles/profile_groups', **kwargs).iterator()
+    for node in query:
+        group = next(query)
+        node.group = group
         yield node
 
 
