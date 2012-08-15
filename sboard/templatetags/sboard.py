@@ -54,7 +54,7 @@ def nodeimage(node, size='normal', additional_classes=''):
         attrs['src'] = node.image_url(size=size)
 
     if attrs['src']:
-        attr_string = u' '.join(u'%s="%s"' % (name, escape(value)) for name, value in attrs.items())
+        attr_string = u' '.join(u'%s="%s"' % (name, escape(value)) for name, value in attrs.items() if value)
         return u'<img %s>' % attr_string
     else:
         return ''

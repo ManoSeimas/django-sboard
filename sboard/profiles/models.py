@@ -105,8 +105,8 @@ class ProfileNode(BaseNode):
     def user(self):
         return User.objects.get(pk=self.uid)
 
-    def photo_url(self, size=40):
-        url = super(ProfileNode, self).photo_url(size=size)
+    def image_url(self, size=40):
+        url = super(ProfileNode, self).image_url(size=size)
         if url:
             return url
         elif self.user().email:
