@@ -413,6 +413,12 @@ class BaseNode(schema.Document):
     def key(self):
         return self._id
 
+    def __hash__(self):
+        return hash(self._id)
+
+    def __eq__(self, other):
+        return self._id == other._id
+
     @classmethod
     def get_db(cls):
         """Returns CouchDB database associated with this model.
