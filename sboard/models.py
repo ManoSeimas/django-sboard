@@ -763,6 +763,8 @@ directives.register_directive('image', CustomImage)
 class Page(Node):
     implements(IPage)
 
+    template = schema.StringProperty(required=True, default='sboard/page.html')
+
 provideNode(Page, "page")
 
 

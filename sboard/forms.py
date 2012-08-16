@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.conf import settings
 
 from django.contrib.markup.templatetags import markup
 
@@ -53,3 +54,11 @@ class TagNodeForm(BaseNodeForm):
 
 class CommentForm(BaseNodeForm):
     body = forms.CharField(required=True, widget=forms.Textarea)
+
+
+SBOARD_PAGE_TEMPLATES = getattr(settings, 'SBOARD_PAGE_TEMPLATES', (('sboard/page.html', 'Plain page'),))
+
+class PageForm(BaseNodeForm):
+    title = forms.CharField()
+    template = forms.ChoiceField(choices=SBOARD_PAGE_TEMPLATES)
+    body = forms.CharField(widget=forms.Textarea, required=False, validators=[validate_body])

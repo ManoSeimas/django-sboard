@@ -23,6 +23,7 @@ from .factory import provideViewExt
 from .forms import CommentForm
 from .forms import NodeForm
 from .forms import TagForm
+from .forms import PageForm
 from .interfaces import IComment
 from .interfaces import IHistory
 from .interfaces import INode
@@ -321,13 +322,6 @@ provideAdapter(DetailsView)
 provideAdapter(DetailsView, name="details")
 
 
-class PageView(DetailsView):
-    adapts(IPage)
-    template = 'sboard/page.html'
-
-provideAdapter(PageView)
-
-
 class CreateView(NodeView):
     # adapts(<parent_node>, <child_node_factory>)
     adapts(object, INode)
@@ -419,6 +413,31 @@ class DeleteView(NodeView):
         raise NotImplementedError
 
 provideAdapter(DeleteView, name="delete")
+
+
+class PageView(DetailsView):
+    adapts(IPage)
+
+    def __init__(self, node):
+        super(DetailsView, self).__init__(node)
+        self.node = node
+        self.template = node.template
+
+provideAdapter(PageView)
+
+
+class PageCreateView(CreateView):
+    adapts(object, IPage)
+    form = PageForm
+
+provideAdapter(PageCreateView, name='create')
+
+
+class PageUpdateView(UpdateView):
+    adapts(IPage)
+    form = PageForm
+
+provideAdapter(PageUpdateView, name='update')
 
 
 class CommentCreateView(CreateView):
