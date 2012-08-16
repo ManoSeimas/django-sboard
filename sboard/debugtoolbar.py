@@ -51,7 +51,7 @@ class NodeDebugPanel(DebugPanel):
                 'doc': None,
             }
 
-            if node:
+            if node and hasattr(node, '_doc'):
                 context['doc'] = pprint.pformat(node._doc)
 
             self.record_stats(context)
