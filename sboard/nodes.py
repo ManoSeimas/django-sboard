@@ -181,6 +181,18 @@ class BaseNodeView(object):
     def nav(self, active=tuple()):
         nav = []
 
+        # Create
+        create_links = self.get_create_links()
+        if create_links:
+            key = 'create'
+            nav.append({
+                'key': key,
+                'url': '#',
+                'title': _('New entry'),
+                'children': create_links,
+                'active': key in active,
+            })
+
         # Edit
         if self.node and self.can('update'):
             key = 'update'
@@ -193,15 +205,15 @@ class BaseNodeView(object):
                 'active': key in active,
             })
 
-        # Create
-        create_links = self.get_create_links()
-        if create_links:
-            key = 'create'
+        # Delete
+        if self.node and self.can('delete'):
+            key = 'delete'
+            link = self.node.permalink('delete')
             nav.append({
                 'key': key,
-                'url': '#',
-                'title': _('New entry'),
-                'children': create_links,
+                'url': link,
+                'title': _('Delete'),
+                'children': [],
                 'active': key in active,
             })
 
@@ -410,7 +422,17 @@ provideAdapter(ConvertView, name="convert")
 
 class DeleteView(NodeView):
     def render(self):
-        raise NotImplementedError
+        if self.request.method == 'POST':
+            parent = self.node.parent
+            self.node.delete()
+            if parent:
+                return redirect(parent.ref.permalink())
+            else:
+                return redirect('/')
+
+        return render(self.request, 'sboard/delete.html', {
+              'title': self.node.title,
+        })
 
 provideAdapter(DeleteView, name="delete")
 
