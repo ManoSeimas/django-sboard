@@ -338,6 +338,8 @@ class CreateView(NodeView):
     # adapts(<parent_node>, <child_node_factory>)
     adapts(object, INode)
 
+    template = 'sboard/node_form.html'
+
     def __init__(self, node, factory):
         self.node = node
         self.factory = factory
@@ -349,7 +351,7 @@ class CreateView(NodeView):
         active = active or ('create',)
         return super(CreateView, self).nav(active)
 
-    def render(self):
+    def render(self, **overrides):
         if not self.can('create', self.factory):
             return render(self.request, '403.html', status=403)
 
@@ -364,21 +366,26 @@ class CreateView(NodeView):
         else:
             form = self.get_form()
 
-        return render(self.request, 'sboard/node_form.html', {
-              'title': _('Create new entry'),
-              'form': form,
-              'view': self,
-          })
+        context = {
+            'title': _('Create new entry'),
+            'form': form,
+            'view': self,
+        }
+        context.update(overrides)
+
+        return render(self.request, self.template, context)
 
 provideAdapter(CreateView, name="create")
 
 
 class UpdateView(NodeView):
+    template = 'sboard/node_form.html'
+
     def nav(self, active=tuple()):
         active = active or ('update',)
         return super(UpdateView, self).nav(active)
 
-    def render(self):
+    def render(self, **overrides):
         if not self.can('update'):
             return render(self.request, '403.html', status=403)
 
@@ -390,11 +397,15 @@ class UpdateView(NodeView):
         else:
             form = self.get_form()
 
-        return render(self.request, 'sboard/node_form.html', {
-              'title': self.node.title,
-              'form': form,
-              'view': self,
-          })
+        context = {
+            'title': self.node.title,
+            'form': form,
+            'view': self,
+            'node': self.node,
+        }
+        context.update(overrides)
+
+        return render(self.request, self.template, context)
 
 provideAdapter(UpdateView, name="update")
 

@@ -7,6 +7,10 @@
 <form{% if form.is_multipart %} enctype="multipart/form-data"{% endif %} method="post" class="form-vertical">
     {% csrf_token %}
     {% include "form_fields.html" %}
+
+    {% block node_form_extra %}
+    {% endblock %}
+
     <div class="form-actions">
       <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
     </div>
