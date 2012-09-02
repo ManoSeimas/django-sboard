@@ -12,6 +12,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db import transaction
+from django.dispatch import Signal
 from django.utils.translation import ugettext_lazy as _
 
 from couchdbkit.exceptions import BadValueError 
@@ -38,6 +39,8 @@ from .interfaces import ITagsChange
 from .interfaces import IPage
 from .permissions import Permissions
 from .utils import base36
+
+node_pre_delete = Signal()
 
 
 class DocTypeMap(dict):
@@ -590,6 +593,10 @@ class BaseNode(schema.Document):
         This method does same as before_save, except is called on parent node.
         """
         pass
+
+    def delete(self):
+        node_pre_delete.send(sender=self)
+        super(BaseNode, self).delete()
 
 
 class Node(BaseNode):
