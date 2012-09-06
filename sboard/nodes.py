@@ -301,6 +301,13 @@ class SearchView(ListView):
         else:
             return []
 
+    def render(self, **overrides):
+        context = {
+            'title': _('Search results'),
+        }
+        context.update(overrides)
+        return super(SearchView, self).render(**context)
+
 
 class DetailsView(NodeView):
     template = 'sboard/node_details.html'

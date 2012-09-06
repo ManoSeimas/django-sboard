@@ -7,131 +7,141 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-07-11 20:31+0300\n"
-"PO-Revision-Date: 2012-07-11 20:38+0300\n"
+"POT-Creation-Date: 2012-09-06 17:23+0300\n"
+"PO-Revision-Date: 2012-09-06 17:24+0300\n"
 "Last-Translator: Kiprianas Spiridonovas <k.spiridonovas@gmail.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n"
+"%100<10 || n%100>=20) ? 1 : 2)\n"
 
-#: sboard/debugtoolbar.py:21
-#: sboard/debugtoolbar.py:24
-#: sboard/nodes.py:58
+#: debugtoolbar.py:21 debugtoolbar.py:24 nodes.py:61
 msgid "Node"
 msgstr ""
 
-#: sboard/fields.py:15
-msgid "Enter a valid 'slug' consisting of letters, numbers, underscores or hyphens."
+#: fields.py:17
+msgid ""
+"Enter a valid 'slug' consisting of letters, numbers, underscores or hyphens."
 msgstr ""
 
-#: sboard/fields.py:29
+#: fields.py:43
 #, python-format
 msgid "'%s' does not exists."
 msgstr ""
 
-#: sboard/fields.py:32
+#: fields.py:46
 #, python-format
 msgid "More than one node matched '%s' slug."
 msgstr ""
 
-#: sboard/models.py:635
+#: models.py:686
 msgid "Node was modified."
 msgstr ""
 
-#: sboard/nodes.py:180
-msgid "Edit"
-msgstr "Redaguoti"
-
-#: sboard/nodes.py:192
+#: nodes.py:191
 msgid "New entry"
 msgstr "Naujas įrašas"
 
-#: sboard/nodes.py:249
+#: nodes.py:203
+msgid "Edit"
+msgstr "Redaguoti"
+
+#: nodes.py:215 templates/sboard/delete.html:11
+msgid "Delete"
+msgstr ""
+
+#: nodes.py:272
 msgid "All nodes"
 msgstr ""
 
-#: sboard/nodes.py:352
+#: nodes.py:306
+msgid "Search results"
+msgstr "Paieškos rezultatai"
+
+#: nodes.py:377
 msgid "Create new entry"
 msgstr ""
 
-#: sboard/profiles/models.py:28
+#: profiles/models.py:28
 msgid "Beginner"
 msgstr ""
 
-#: sboard/profiles/models.py:29
+#: profiles/models.py:29
 msgid "Expert"
 msgstr ""
 
-#: sboard/profiles/models.py:44
+#: profiles/models.py:44
 msgid "User"
 msgstr "Naudotojas"
 
-#: sboard/profiles/models.py:45
+#: profiles/models.py:45
 msgid "Karma"
 msgstr ""
 
-#: sboard/profiles/models.py:46
+#: profiles/models.py:46
 msgid "Name"
 msgstr ""
 
-#: sboard/profiles/models.py:52
+#: profiles/models.py:52
 msgid "Profile"
 msgstr "Profilis"
 
-#: sboard/profiles/models.py:53
+#: profiles/models.py:53
 msgid "Profiles"
 msgstr "Profiliai"
 
-#: sboard/templates/sboard/group_members.html:14
+#: templates/sboard/delete.html:9
+#, python-format
+msgid "Are you sure you want to delete \"%(title)s\"?"
+msgstr ""
+
+#: templates/sboard/group_members.html:14
 msgid "dabar"
 msgstr ""
 
-#: sboard/templates/sboard/group_members.html:24
+#: templates/sboard/group_members.html:24
 msgid "This groups does not have any members."
 msgstr ""
 
-#: sboard/templates/sboard/login.html:8
+#: templates/sboard/login.html:8
 msgid "OpenID"
 msgstr ""
 
-#: sboard/templates/sboard/login.html:11
+#: templates/sboard/login.html:11
 msgid "Log in"
 msgstr "Prisijungti"
 
-#: sboard/templates/sboard/node_details.html:28
+#: templates/sboard/node_details.html:28
 msgid "Add tag"
 msgstr "Pridėti gairę"
 
-#: sboard/templates/sboard/node_details.html:33
-#: sboard/templates/sboard/node_details.html:47
-#: sboard/templates/sboard/node_form.html:11
+#: templates/sboard/node_details.html:33 templates/sboard/node_details.html:47
+#: templates/sboard/node_form.html:15
 msgid "Save"
 msgstr "Išsaugoti"
 
-#: sboard/templates/sboard/node_details.html:39
+#: templates/sboard/node_details.html:39
 msgid "Create new comment"
 msgstr "Komentuoti"
 
-#: sboard/templates/sboard/node_details.html:51
+#: templates/sboard/node_details.html:51
 msgid "Comments"
 msgstr "Komentarai"
 
-#: sboard/templates/sboard/node_details.html:61
+#: templates/sboard/node_details.html:61
 msgid "No comments."
 msgstr "Nėra komentarų."
 
-#: sboard/templates/sboard/node_list.html:14
+#: templates/sboard/node_list.html:14 templates/sboard/search.html:14
 msgid "No entries found."
 msgstr "Nerasta įrašų."
 
-#: sboard/templates/sboard/profile.html:9
+#: templates/sboard/profile.html:9
 msgid "Date of birth"
 msgstr "Gimimo data"
 
-#: sboard/templates/sboard/profile.html:12
+#: templates/sboard/profile.html:12
 msgid "Home page"
 msgstr "Tinklalapis"
-
