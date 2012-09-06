@@ -765,12 +765,12 @@ provideNode(ImageNode, "image")
 
 class CustomImage(Image):
     def run(self):
-        media = ImageNode.get(self.arguments[0])
+        media = get_node_by_slug(self.arguments[0])
         self.arguments[0] = reverse('media_normal_size',
                                     args=[media._id, media.ext])
         return super(CustomImage, self).run()
 
-directives.register_directive('image', CustomImage)
+directives.register_directive('image-node', CustomImage)
 
 
 class Page(Node):
