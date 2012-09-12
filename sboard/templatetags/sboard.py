@@ -1,4 +1,5 @@
 from django import template
+from django.core.cache import cache
 
 from cgi import escape
 
@@ -31,31 +32,41 @@ SIZES = {
 
 @register.simple_tag
 def nodeimage(node, size='normal', additional_classes=''):
-    if size in SIZES:
-        html_class = 'node-image-%s' % size
-        size = SIZES[size]
+    key = ':'.join(['nodeimage', node._id, unicode(size), additional_classes])
+
+    value = cache.get(key)
+
+    if value:
+        return value
     else:
-        html_class = 'node-image'
+        if size in SIZES:
+            html_class = 'node-image-%s' % size
+            size = SIZES[size]
+        else:
+            html_class = 'node-image'
 
-    if additional_classes:
-        html_class += ' ' + additional_classes
+        if additional_classes:
+            html_class += ' ' + additional_classes
 
-    attrs = {
-        'alt': node.title,
-        'class': html_class,
-    }
+        attrs = {
+            'alt': node.title,
+            'class': html_class,
+        }
 
-    if node.image:
-        geometry = '%dx%d' % (size, size)
-        thumbnail = node.image.ref.thumbnail(geometry)
-        attrs['src'] = thumbnail.url
-        attrs['style'] = 'padding:%s' % margin(thumbnail, geometry)
-    else:
-        attrs['src'] = node.image_url(size=size)
+        if node.image:
+            geometry = '%dx%d' % (size, size)
+            thumbnail = node.image.ref.thumbnail(geometry)
+            attrs['src'] = thumbnail.url
+            attrs['style'] = 'padding:%s' % margin(thumbnail, geometry)
+        else:
+            attrs['src'] = node.image_url(size=size)
 
-    if attrs['src']:
-        attr_string = u' '.join(u'%s="%s"' % (name, escape(value)) for name, value in attrs.items() if value)
-        return u'<img %s>' % attr_string
-    else:
-        return ''
+        if attrs['src']:
+            attr_string = u' '.join(u'%s="%s"' % (name, escape(value)) for name, value in attrs.items() if value)
+            value = u'<img %s>' % attr_string
+        else:
+            value = ''
+
+        cache.set(key, value)
+        return value
 
