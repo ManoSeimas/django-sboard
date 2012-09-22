@@ -62,11 +62,14 @@ class Profile(models.Model):
 
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
+        # Create profile node instance
         node = ProfileNode()
         node._id = node.get_new_id()
-        profile = Profile.objects.create(user=instance, node=node._id)
-        node.uid = profile.pk
+        node.uid = instance.pk
         node.save()
+
+        # Create profile model instance
+        Profile.objects.create(user=instance, node=node._id)
 
 post_save.connect(create_user_profile, sender=User)
 
