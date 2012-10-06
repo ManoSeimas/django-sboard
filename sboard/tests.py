@@ -57,15 +57,10 @@ class NodesTestsMixin(object):
         loading.get_schema = couchdbkit_handler.get_schema
         loading.get_db = couchdbkit_handler.get_db
 
-        created_databases = []
         for app, url in getattr(settings, "COUCHDB_DATABASES", []):
             app_label = app.split('.')[-1]
-            db = loading.get_db(app_label)
-            if db.dbname in created_databases:
-                continue
             app = get_app(app_label)
             loading.couchdbkit_handler.sync(app, verbosity=0)
-            created_databases.append(db.dbname)
 
     def _teardown_couchdb(self):
         deleted_databases = []
