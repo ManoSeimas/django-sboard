@@ -8,7 +8,7 @@ from mock import patch
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.db.models import get_apps
+from django.db.models import get_app
 from django.test import TestCase
 
 from couchdbkit.exceptions import ResourceNotFound
@@ -48,38 +48,31 @@ class NodesTestsMixin(object):
             setattr(settings, key, val)
 
     def _setup_couchdb(self):
-        self._couch_databases = []
-        for app, url in getattr(settings, "COUCHDB_DATABASES", []):
-            self._couch_databases.append((app, url + '_unittestdb'))
+        # XXX: should be better way to do this...
 
-        self._set_setting('COUCHDB_DATABASES', self._couch_databases)
-
-        old_handler = loading.couchdbkit_handler
-        couchdbkit_handler = loading.CouchdbkitHandler(self._couch_databases)
+        loading.couchdbkit_handler
+        couchdbkit_handler = loading.CouchdbkitHandler(settings.COUCHDB_DATABASES)
         loading.couchdbkit_handler = couchdbkit_handler
         loading.register_schema = couchdbkit_handler.register_schema
         loading.get_schema = couchdbkit_handler.get_schema
         loading.get_db = couchdbkit_handler.get_db
 
-        # register our dbs with the extension document classes
-        for app, value in old_handler.app_schema.items():
-            for name, cls in value.items():
-                if issubclass(cls, BaseNode):
-                    cls.set_db(cls.get_db())
-                else:
-                    cls.set_db(loading.get_db(app))
-
-        for app in get_apps():
+        created_databases = []
+        for app, url in getattr(settings, "COUCHDB_DATABASES", []):
+            app_label = app.split('.')[-1]
+            db = loading.get_db(app_label)
+            if db.dbname in created_databases:
+                continue
+            app = get_app(app_label)
             loading.couchdbkit_handler.sync(app, verbosity=0)
+            created_databases.append(db.dbname)
 
     def _teardown_couchdb(self):
         deleted_databases = []
-        skipcount = 0
-        for app, item in self._couch_databases:
+        for app, url in getattr(settings, "COUCHDB_DATABASES", []):
             app_label = app.split('.')[-1]
             db = loading.get_db(app_label)
-            if db.dbname in deleted_databases: 
-                skipcount += 1
+            if db.dbname in deleted_databases:
                 continue
             try:
                 db.server.delete_db(db.dbname)
