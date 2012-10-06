@@ -320,12 +320,19 @@ class UniqueKey(models.Model):
 
     Generated key is 6 characters length and can identify 2 176 782 335 nodes.
 
-    >>> UniqueKey.objects.create().key._id
-    '000001'
+    XXX: Thsese tests or whole UniqueKey model should be refactored, since now,
+    id is not predictible, because now fixtures have user, and that user
+    triggers signal that creates profile not for that user and UniqueKey
+    inclreases. If there is more situations like this, ID again can chainge.
+
+    Maybe UniqueKey, should only store one record, with lates key... (?)
+
     >>> UniqueKey.objects.create().key._id
     '000002'
     >>> UniqueKey.objects.create().key._id
     '000003'
+    >>> UniqueKey.objects.create().key._id
+    '000004'
 
     """
     key = NodeForeignKey(unique=True, null=True)
