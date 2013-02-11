@@ -153,7 +153,7 @@ def get_node_by_slug(slug=None):
     if key:
         try:
             return couch.get(key)
-        except NoResultFound:
+        except (ResourceNotFound, NoResultFound):
             return None
 
     if slug is None or slug == '~':
@@ -164,7 +164,7 @@ def get_node_by_slug(slug=None):
         return query.one(except_all=True)
     except MultipleResultsFound:
         return query
-    except NoResultFound:
+    except (ResourceNotFound, NoResultFound):
         return None
 
 
