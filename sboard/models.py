@@ -42,7 +42,6 @@ from .utils import base36
 
 node_pre_delete = Signal()
 
-
 class DocTypeMap(dict):
     """Special dict, that provides doc_type map for instances returned by view.
 
@@ -727,6 +726,24 @@ class TagsChange(History):
 
 provideNode(TagsChange, "tags-change")
 
+def get_file_node_cache_path(id,with_ext=True):
+        """Returns the path to a previously cached file node. This method expects
+        a symlink to cache extension data, allowing it to be used without
+        a File Node instance. 
+        """
+        prefix = id[-2:]
+        suffix = id[:-2]
+        dirpath = os.path.join(settings.MEDIA_ROOT, 'node', prefix)
+        linkpath = os.path.join(dirpath, suffix)
+
+        if not with_ext:
+            return linkpath
+        
+        if not os.path.exists(linkpath):
+            return None
+
+        return os.path.join(dirpath, os.readlink(linkpath))
+
 
 class FileNode(Node):
     _default_importance = 0
@@ -736,30 +753,54 @@ class FileNode(Node):
     def path(self, fetch=True):
         """Returns file path.
 
-        If file is not alreade stored from attachment to file system, then first it
-        will be stored.
+        If file is not already stored from attachment to file system, then first it
+        will be located and stored.
         """
-        prefix = self._id[-2:]
-        suffix = self._id[:-2]
-        name = '%s.%s' % (suffix, self.ext)
-        dirpath = os.path.join(settings.MEDIA_ROOT, 'node', prefix)
-        filepath = os.path.join(dirpath, name)
+
+        linkpath = get_file_node_cache_path(self._id, False)
+        filepath = linkpath + "." + self.ext
+        dirpath = os.path.dirname(filepath)
+
         if not os.path.exists(filepath):
             if not os.path.exists(dirpath):
                 os.makedirs(dirpath)
-            if fetch:
-                stream = self.fetch_attachment('file.%s' % self.ext, stream=True)
-                f = open(filepath, 'wb')
-                while True:
-                    chunk = stream.read(1024)
-                    if chunk:
-                        f.write(chunk)
-                    else:
-                        break
-                f.close()
+            
+            stream = self.fetch_attachment('file.%s' % self.ext, stream=True)
+            f = open(filepath, 'wb')
+            while True:
+                chunk = stream.read(1024)
+                if chunk:
+                    f.write(chunk)
+                else:
+                    break
+            f.close()
+
+        if os.path.exists(linkpath):
+            linktarget = os.path.join(dirpath, os.readlink(linkpath))
+            if linktarget is not filepath:
+                os.unlink(linkpath)
+                os.symlink(filepath, linkpath)
+        else:
+            if not os.path.exists(dirpath):
+                os.makedirs(dirpath)
+            os.symlink(filepath, linkpath)
+
         return filepath
 
+
+
 provideNode(FileNode, "file")
+
+def get_image_node_thumbnail(id, geometry):
+    """ Returns ImageNode thumbnail path without instantiating
+        an ImageNode unless necessary.
+    """
+    image_path = get_file_node_cache_path(id, True)
+    if image_path and os.path.exists(image_path):
+        return get_thumbnail(image_path, geometry, upscale=False)
+    else:
+        image_node = get_node_by_slug("+"+id)
+        return image_node.thumbnail(geometry)
 
 
 class ImageNode(FileNode):
