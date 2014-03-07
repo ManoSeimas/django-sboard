@@ -761,6 +761,9 @@ class FileNode(Node):
         filepath = linkpath + "." + self.ext
         dirpath = os.path.dirname(filepath)
 
+        if not fetch:
+            return filepath
+
         if not os.path.exists(filepath):
             if not os.path.exists(dirpath):
                 os.makedirs(dirpath)
