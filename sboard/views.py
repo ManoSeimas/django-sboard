@@ -1,6 +1,6 @@
 import StringIO
 
-import Image
+from PIL import Image
 
 from zope.component import ComponentLookupError
 from zope.component import getAdapter

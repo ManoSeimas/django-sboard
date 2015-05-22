@@ -1,4 +1,4 @@
-from django.conf.urls.defaults import patterns, url, include
+from django.conf.urls import patterns, url, include
 
 slug = r'[a-z0-9~+-]+'
 ext = r'[a-z]+'

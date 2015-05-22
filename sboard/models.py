@@ -7,7 +7,6 @@ import os.path
 from zope.interface import implements
 
 from django.conf import settings
-from django.contrib.markup.templatetags import markup
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -15,7 +14,7 @@ from django.db import transaction
 from django.dispatch import Signal
 from django.utils.translation import ugettext_lazy as _
 
-from couchdbkit.exceptions import BadValueError 
+from couchdbkit.exceptions import BadValueError
 from couchdbkit.exceptions import MultipleResultsFound
 from couchdbkit.exceptions import NoResultFound
 from couchdbkit.exceptions import ResourceNotFound
@@ -39,6 +38,7 @@ from .interfaces import ITagsChange
 from .interfaces import IPage
 from .permissions import Permissions
 from .utils import base36
+from sboard import markup
 
 node_pre_delete = Signal()
 
@@ -257,7 +257,8 @@ class NodeRefDescriptor(object):
 
 class NodeForeignKey(models.CharField):
     def __init__(self, **kwargs):
-        super(NodeForeignKey, self).__init__(max_length=16, **kwargs)
+        kwargs.setdefault('max_length', 16)
+        super(NodeForeignKey, self).__init__(**kwargs)
 
     def to_python(self, value):
         if value is None or isinstance(value, NodeRef):
@@ -286,20 +287,9 @@ class NodeForeignKey(models.CharField):
         super(NodeForeignKey, self).contribute_to_class(cls, name)
         setattr(cls, self.name, NodeRefDescriptor(self))
 
-# Register field with South, but don't depend on it.
-try:
-    from south.modelsinspector import add_introspection_rules
-    add_introspection_rules(
-        # max_length is always 16, so ensure that south doesn't pass it to the field constructor
-        [((NodeForeignKey,), [], {'max_length': ['max_length', {'default': 16}]})],
-        ["^sboard\.models\.NodeForeignKey"],
-    )
-except ImportError:
-    pass
-
 
 class UniqueKeyManager(models.Manager):
-    @transaction.commit_on_success
+    @transaction.atomic
     def create(self):
         obj = UniqueKey()
         obj.save()
@@ -729,7 +719,7 @@ provideNode(TagsChange, "tags-change")
 def get_file_node_cache_path(id,with_ext=True):
         """Returns the path to a previously cached file node. This method expects
         a symlink to cache extension data, allowing it to be used without
-        a File Node instance. 
+        a File Node instance.
         """
         prefix = id[-2:]
         suffix = id[:-2]
@@ -738,7 +728,7 @@ def get_file_node_cache_path(id,with_ext=True):
 
         if not with_ext:
             return linkpath
-        
+
         if not os.path.exists(linkpath):
             return None
 
@@ -767,7 +757,7 @@ class FileNode(Node):
         if not os.path.exists(filepath):
             if not os.path.exists(dirpath):
                 os.makedirs(dirpath)
-            
+
             stream = self.fetch_attachment('file.%s' % self.ext, stream=True)
             f = open(filepath, 'wb')
             while True:

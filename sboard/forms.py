@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.conf import settings
 
-from django.contrib.markup.templatetags import markup
+from sboard import markup
 
 from .fields import NodeField
 
