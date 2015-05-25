@@ -2,6 +2,8 @@ from django.conf import settings
 from django.utils.encoding import smart_str, force_unicode
 from django.utils.safestring import mark_safe
 
+from docutils.core import publish_parts
+
 
 def restructuredtext(value):
     docutils_settings = getattr(settings, "RESTRUCTUREDTEXT_FILTER_SETTINGS", {})
