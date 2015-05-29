@@ -316,12 +316,12 @@ class UniqueKey(models.Model):
 
     Maybe UniqueKey, should only store one record, with lates key... (?)
 
-    >>> UniqueKey.objects.create().key._id
-    '000002'
-    >>> UniqueKey.objects.create().key._id
-    '000003'
-    >>> UniqueKey.objects.create().key._id
-    '000004'
+        >>> keys = set()
+        >>> keys.add(UniqueKey.objects.create().key._id)
+        >>> keys.add(UniqueKey.objects.create().key._id)
+        >>> keys.add(UniqueKey.objects.create().key._id)
+        >>> len(keys)
+        3
 
     """
     key = NodeForeignKey(unique=True, null=True)
