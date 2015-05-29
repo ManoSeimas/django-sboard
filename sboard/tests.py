@@ -6,7 +6,7 @@ import unittest
 from mock import patch
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse
 from django.db.models import get_app
 from django.test import TestCase
@@ -78,22 +78,22 @@ class NodesTestsMixin(object):
     def _login_superuser(self):
         self.client.logout()
         assert self.client.login(username='superuser', password='supersecret')
-        return User.objects.get(username='superuser')
+        return get_user_model().objects.get(username='superuser')
 
     def _login_user1(self):
         self.client.logout()
         assert self.client.login(username='u1', password='secret')
-        return User.objects.get(username='u1')
+        return get_user_model().objects.get(username='u1')
 
     def _login_user2(self):
         self.client.logout()
         assert self.client.login(username='u2', password='secret')
-        return User.objects.get(username='u2')
+        return get_user_model().objects.get(username='u2')
 
     def _login_user3(self):
         self.client.logout()
         assert self.client.login(username='u3', password='secret')
-        return User.objects.get(username='u3')
+        return get_user_model().objects.get(username='u3')
 
     def _logout(self):
         self.client.logout()
@@ -139,13 +139,13 @@ class NodesTestsMixin(object):
         self._setup_couchdb()
 
         # Create superuser.
-        User.objects.create_superuser('superuser', 'superuser@example.com',
+        get_user_model().objects.create_superuser('superuser', 'superuser@example.com',
                                       'supersecret')
 
         # Create users.
-        User.objects.create_user('u1', 'u1@example.com', 'secret')
-        User.objects.create_user('u2', 'u2@example.com', 'secret')
-        User.objects.create_user('u3', 'u3@example.com', 'secret')
+        get_user_model().objects.create_user('u1', 'u1@example.com', 'secret')
+        get_user_model().objects.create_user('u2', 'u2@example.com', 'secret')
+        get_user_model().objects.create_user('u3', 'u3@example.com', 'secret')
 
 
 class NodesTests(NodesTestsMixin, TestCase):

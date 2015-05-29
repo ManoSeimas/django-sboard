@@ -3,10 +3,11 @@ import hashlib
 
 from zope.interface import implements
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 
 from couchdbkit.ext.django import schema
 
@@ -41,7 +42,7 @@ class ProfileManager(models.Manager):
 
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, verbose_name=_('User'))
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, verbose_name=_('User'))
     karma = models.IntegerField(_('Karma'), default=0, choices=KARMA_CHOICES)
     name = models.CharField(_('Name'), max_length=255)
     node = NodeForeignKey()
@@ -71,7 +72,7 @@ def create_user_profile(sender, instance, created, **kwargs):
         # Create profile model instance
         Profile.objects.create(user=instance, node=node._id)
 
-post_save.connect(create_user_profile, sender=User)
+post_save.connect(create_user_profile, sender=settings.AUTH_USER_MODEL)
 
 
 class ProfileNode(BaseNode):
@@ -106,7 +107,7 @@ class ProfileNode(BaseNode):
         return Profile.objects.get(user=self.uid)
 
     def user(self):
-        return User.objects.get(pk=self.uid)
+        return get_user_model().objects.get(pk=self.uid)
 
     def image_url(self, size=40):
         url = super(ProfileNode, self).image_url(size=size)
