@@ -2,7 +2,7 @@
 {% load i18n %}
 
 {% block content %}
-  <form action="{% url socialauth_begin "openid" %}" method="post"
+  <form action="{% url 'socialauth_begin' "openid" %}" method="post"
         class="well form-inline">
     {% csrf_token %}
     <label for="openid_identifier" class="control-label">{% trans "OpenID" %}</label>
