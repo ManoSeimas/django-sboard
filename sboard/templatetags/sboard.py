@@ -32,6 +32,8 @@ SIZES = {
 
 @register.simple_tag
 def nodeimage(node, size='normal', additional_classes=''):
+    if not node:
+        return ''
     key = ':'.join(['nodeimage', node._id, unicode(size), additional_classes])
 
     value = cache.get(key)
