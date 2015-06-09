@@ -288,47 +288,6 @@ class NodeForeignKey(models.CharField):
         setattr(cls, self.name, NodeRefDescriptor(self))
 
 
-class UniqueKeyManager(models.Manager):
-    @transaction.atomic
-    def create(self):
-        obj = UniqueKey()
-        obj.save()
-        obj.key = base36(obj.pk).zfill(6)
-        obj.save()
-        return obj
-
-    def last_key(self):
-        return self.latest('pk')._id
-
-
-class UniqueKey(models.Model):
-    """Unique key generator.
-
-    This model ensures unique key generation, incremented by 1 and converted to
-    base36.
-
-    Generated key is 6 characters length and can identify 2 176 782 335 nodes.
-
-    XXX: Thsese tests or whole UniqueKey model should be refactored, since now,
-    id is not predictible, because now fixtures have user, and that user
-    triggers signal that creates profile not for that user and UniqueKey
-    inclreases. If there is more situations like this, ID again can chainge.
-
-    Maybe UniqueKey, should only store one record, with lates key... (?)
-
-        >>> keys = set()
-        >>> keys.add(UniqueKey.objects.create().key._id)
-        >>> keys.add(UniqueKey.objects.create().key._id)
-        >>> keys.add(UniqueKey.objects.create().key._id)
-        >>> len(keys)
-        3
-
-    """
-    key = NodeForeignKey(unique=True, null=True)
-
-    objects = UniqueKeyManager()
-
-
 def get_new_id():
     last_id = couch.view('sboard/max_id', reduce=True, group=False,
                          include_docs=False,
