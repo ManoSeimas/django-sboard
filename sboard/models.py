@@ -330,9 +330,11 @@ class UniqueKey(models.Model):
 
 
 def get_new_id():
-    return UniqueKey.objects.create().key._id
-
-
+    last_id = couch.view('sboard/max_id', reduce=True, group=False,
+                         include_docs=False,
+                         startkey='000000', endkey='ffffff').one()['value']
+    next_numeric_id = int(last_id, 36) + 1
+    return base36(next_numeric_id).zfill(6)
 
 
 def set_nodes_ambiguous(nodes):
@@ -465,7 +467,7 @@ class BaseNode(schema.Document):
         return reverse(name, args=args)
 
     def get_new_id(self):
-        return UniqueKey.objects.create().key._id
+        return get_new_id()
 
     def set_new_id(self):
         self._id = self.get_new_id()
