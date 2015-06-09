@@ -19,6 +19,7 @@ from .models import BaseNode
 from .models import FileNode
 from .models import Node
 from .models import NodeProperty
+from .models import UniqueKey
 from .models import couch
 from .profiles.models import Profile
 
@@ -271,3 +272,20 @@ class TestNodeRef(unittest.TestCase):
         self.assertTrue(node.photo)
         node.photo = None
         self.assertFalse(node.photo)
+
+
+class TestNodeForeignKey(unittest.TestCase):
+    @patch('sboard.models.couch')
+    def test_field(self, couch_mock):
+        ref = Node()
+        ref._id = '000123'
+        ref.title = 'ref title'
+        couch_mock.get.return_value = ref
+
+        model = UniqueKey()
+        model.key = ref
+        model.save()
+
+        model = UniqueKey.objects.get(key='000123')
+        self.assertEqual(model.key._id, '000123')
+        self.assertEqual(model.key.ref.title, 'ref title')
