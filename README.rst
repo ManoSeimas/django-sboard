@@ -20,7 +20,7 @@ Example node view:
         adapts(INode)
 
     # Below are listed possible ways, how to tell sistem about your view
-    existence.
+    # existence.
 
     # If name is not provided, it means, that this view is default view for
     # adapted node. For example if you access node using this URL: /my-node/,
@@ -32,8 +32,8 @@ Example node view:
     provideAdapter(DetailsView, name="details")
 
     # You can adapt any existing view to any node, by giving secont parameter,
-    in this case (ICategory,). This parameter does axactly the same ting as
-    adapts(ICategory).
+    # in this case (ICategory,). This parameter does axactly the same ting as
+    # adapts(ICategory).
     provideAdapter(DetailsView, (ICategory,), name="details")
 
 .. _node URLs:
