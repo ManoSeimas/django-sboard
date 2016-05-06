@@ -28,7 +28,7 @@ Example node view:
     provideAdapter(DetailsView)
 
     # If you specify name, then this view will be used for URL's like this:
-    /my-node/details/. As you can see, details comes right after node ID.
+    # /my-node/details/. As you can see, details comes right after node ID.
     provideAdapter(DetailsView, name="details")
 
     # You can adapt any existing view to any node, by giving secont parameter,
